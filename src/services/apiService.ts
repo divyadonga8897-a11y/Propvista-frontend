@@ -248,6 +248,23 @@ export const apiService = {
     return data;
   },
 
+  // ── Resident Access Requests ──
+  getResidentAccessRequests: async (): Promise<any[]> => {
+    const { data } = await apiClient.get("/api/v1/resident-access/pending");
+    return data;
+  },
+
+  approveResidentAccessRequest: async (id: string, remarks: string = ""): Promise<any> => {
+    const { data } = await apiClient.post(`/api/v1/resident-access/${id}/approve`, { remarks });
+    return data;
+  },
+
+  rejectResidentAccessRequest: async (id: string, remarks: string = ""): Promise<any> => {
+    const { data } = await apiClient.post(`/api/v1/resident-access/${id}/reject`, { remarks });
+    return data;
+  },
+
+
   cancelBooking: async (id: string): Promise<any> => {
     const { data } = await apiClient.post(`/api/v1/booking/${id}/cancel`);
     return data;

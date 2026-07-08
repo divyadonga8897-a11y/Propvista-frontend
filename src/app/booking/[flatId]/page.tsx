@@ -80,7 +80,8 @@ export default function BookingSummaryPage({ params }: { params: Promise<{ flatI
       const order = await apiService.createPaymentOrder(booking.id, totalAmount, bookingType === "BUY" ? "Advance Booking" : "Rental Security Deposit");
       
       // Check if this is a simulated checkout for mock data
-      if (order.razorpay_key_id === "rzp_test_mockkey" || booking.id.startsWith("mock-")) {
+      // Direct simulation bypass for mock Razorpay order
+      if (order.razorpay_key_id.includes("mock") || booking.id.startsWith("mock-")) {
         // Direct simulation bypass
         setTimeout(async () => {
           try {

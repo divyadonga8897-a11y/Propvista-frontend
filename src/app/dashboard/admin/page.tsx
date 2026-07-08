@@ -18,7 +18,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/reportUtils';
 
 export default function AdminDashboard() {
   // Tab states
-  const [activeTab, setActiveTab] = useState<"stats" | "apartments" | "floors" | "flats" | "bookings" | "payments" | "ai" | "site-visits" | "audit-logs">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "apartments" | "floors" | "flats" | "bookings" | "payments" | "ai" | "site-visits" | "audit-logs" | "resident-approvals">("stats");
 
   // Booking, Payment, Site Visits & Audit Logs admin data
   const [adminBookings, setAdminBookings] = useState<any[]>([]);
@@ -29,6 +29,9 @@ export default function AdminDashboard() {
   const [pyLoading, setPyLoading] = useState(false);
   const [svLoading, setSvLoading] = useState(false);
   const [alLoading, setAlLoading] = useState(false);
+  
+  const [residentApprovals, setResidentApprovals] = useState<any[]>([]);
+  const [raLoading, setRaLoading] = useState(false);
 
   // Shared entity lists
   const [cities, setCities] = useState<City[]>([]);
@@ -323,7 +326,7 @@ export default function AdminDashboard() {
 
         {/* Toolbar Tabs */}
         <div className="flex border-b border-slate-200 gap-6 flex-wrap">
-          {(["stats", "apartments", "floors", "flats", "bookings", "payments", "site-visits", "audit-logs", "ai"] as const).map((tab) => (
+          {(["stats", "apartments", "floors", "flats", "bookings", "payments", "site-visits", "audit-logs", "resident-approvals", "ai"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -344,6 +347,10 @@ export default function AdminDashboard() {
                   setAlLoading(true);
                   apiService.getAuditLogs(100).then(d => { setAuditLogs(d); setAlLoading(false); }).catch(() => setAlLoading(false));
                 }
+                if (tab === "resident-approvals" && residentApprovals.length === 0) {
+                  setRaLoading(true);
+                  apiService.getResidentAccessRequests().then(d => { setResidentApprovals(d); setRaLoading(false); }).catch(() => setRaLoading(false));
+                }
               }}
               className={`pb-3 text-xs font-bold capitalize transition-all border-b-2 ${activeTab === tab
                 ? "border-brand-blue text-brand-blue"
@@ -358,7 +365,8 @@ export default function AdminDashboard() {
                         : tab === "payments" ? "Payments"
                           : tab === "site-visits" ? "Site Visits"
                             : tab === "audit-logs" ? "Audit Logs"
-                              : <span className="flex items-center gap-1.5"><BrainCircuit className="h-3.5 w-3.5 text-indigo-500" /> AI Analytics</span>}
+                              : tab === "resident-approvals" ? "Resident Approvals"
+                                : <span className="flex items-center gap-1.5"><BrainCircuit className="h-3.5 w-3.5 text-indigo-500" /> AI Analytics</span>}
             </button>
           ))}
         </div>
@@ -421,6 +429,71 @@ export default function AdminDashboard() {
                 </ResponsiveContainer>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Resident Approvals Tab */}
+        {activeTab === "resident-approvals" && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fade-in p-6">
+            <h3 className="text-sm font-bold text-brand-dark mb-4 border-b border-slate-100 pb-3 flex items-center gap-1.5">
+              <Check className="h-4 w-4 text-emerald-500" /> Pending Resident Access Requests
+            </h3>
+            
+            {raLoading ? (
+              <div className="text-center p-8 text-slate-500">Loading requests...</div>
+            ) : residentApprovals.length === 0 ? (
+              <div className="text-center p-8 text-slate-500 border border-dashed rounded-xl border-slate-300">
+                No pending requests.
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {residentApprovals.map((req, i) => (
+                  <div key={i} className="flex justify-between items-center p-4 border border-slate-200 rounded-xl hover:shadow-sm transition-shadow">
+                    <div>
+                      <div className="font-bold text-slate-800 text-sm">Customer ID: {req.customer_id}</div>
+                      <div className="text-xs text-slate-500 mt-1">Flat ID: {req.flat_id}</div>
+                      <div className="text-xs text-slate-500">Booking ID: {req.booking_id}</div>
+                      <div className="text-xs text-slate-400 mt-2">Requested on: {new Date(req.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={async () => {
+                          try {
+                            await apiService.approveResidentAccessRequest(req.id, "Approved by Admin");
+                            setAlertMsg("Request Approved!");
+                            setResidentApprovals(residentApprovals.filter(r => r.id !== req.id));
+                            setTimeout(() => setAlertMsg(""), 3000);
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-200"
+                      >
+                        Approve
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const remarks = prompt("Reason for rejection:");
+                          if (remarks) {
+                            try {
+                              await apiService.rejectResidentAccessRequest(req.id, remarks);
+                              setAlertMsg("Request Rejected.");
+                              setResidentApprovals(residentApprovals.filter(r => r.id !== req.id));
+                              setTimeout(() => setAlertMsg(""), 3000);
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-red-100 text-red-700 text-xs font-bold rounded-lg hover:bg-red-200"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
