@@ -36,7 +36,7 @@ export default function Navbar() {
     await signOut();
     toast.success("Signed out successfully.");
     setSigningOut(false);
-    router.push("/auth");
+    router.push("/login");
   };
 
   const roleColor =
@@ -45,6 +45,16 @@ export default function Navbar() {
       : role === "Resident"
         ? "bg-emerald-600"
         : "bg-blue-600";
+
+  // Hide Navbar on authentication and non-customer dashboard pages
+  if (
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/resident")
+  ) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/60 bg-white/95 backdrop-blur-md shadow-sm">

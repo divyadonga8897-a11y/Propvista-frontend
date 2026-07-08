@@ -54,13 +54,13 @@ export default function LoginPage() {
 
       switch (role) {
         case "admin":
-          router.replace("/dashboard/admin");
+          router.replace("/admin");
           break;
         case "resident":
           router.replace("/resident");
           break;
         default:
-          router.replace("/customer");
+          router.replace("/dashboard");
           break;
       }
       router.refresh();
@@ -142,13 +142,13 @@ export default function LoginPage() {
 
     switch (actualRole) {
       case "admin":
-        router.replace("/dashboard/admin");
+        router.replace("/admin");
         break;
       case "resident":
         router.replace("/resident");
         break;
       default:
-        router.replace("/customer");
+        router.replace("/dashboard");
     }
   };
 

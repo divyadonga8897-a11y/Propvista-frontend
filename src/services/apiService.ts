@@ -363,6 +363,105 @@ export const apiService = {
     return data.announcements || [];
   },
 
+  getCommunityFeed: async (): Promise<any[]> => {
+    try {
+      const { data } = await apiClient.get("/api/v1/community-feed");
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  createCommunityPost: async (body: { content: string }): Promise<any> => {
+    try {
+      const { data } = await apiClient.post("/api/v1/community-feed", body);
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  getEmergencyContacts: async (): Promise<any[]> => {
+    try {
+      const { data } = await apiClient.get("/api/v1/emergency-contacts");
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  getCommunityEvents: async (): Promise<any[]> => {
+    try {
+      const { data } = await apiClient.get("/api/v1/community-events");
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  rsvpEvent: async (eventId: string, body: { status: string }): Promise<any> => {
+    try {
+      const { data } = await apiClient.post(`/api/v1/community-events/${eventId}/rsvp`, body);
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  createReferral: async (body: any): Promise<any> => {
+    try {
+      const { data } = await apiClient.post("/api/v1/referrals", body);
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  getCommunityWhatsApp: async (): Promise<any> => {
+    try {
+      const { data } = await apiClient.get("/api/v1/community-whatsapp");
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  getNoticeBoard: async (): Promise<any[]> => {
+    try {
+      const { data } = await apiClient.get("/api/v1/notice-board");
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  getResidentIdCard: async (): Promise<any> => {
+    try {
+      const { data } = await apiClient.get("/api/v1/resident/id-card");
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  getResidents: async (): Promise<any[]> => {
+    try {
+      const { data } = await apiClient.get("/api/v1/residents");
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  updateResidentProfile: async (body: any): Promise<any> => {
+    try {
+      const { data } = await apiClient.put("/api/v1/resident/profile", body);
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
   createAnnouncement: async (body: { title: string; content: string; announcement_type: string }): Promise<Announcement> => {
     const { data } = await apiClient.post("/api/v1/announcements", body);
     return data;
