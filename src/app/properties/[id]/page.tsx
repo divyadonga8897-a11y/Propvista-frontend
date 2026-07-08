@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useState } from "react";
-import { MOCK_APARTMENTS, STATUS_COLORS, getApartmentById } from "@/data/mockData";
+import { useEffect, use, useState } from "react";
+import { apiService } from "@/services/apiService";
+import type { ApartmentDetail } from "@/types/real-estate";
 import { usePropVista } from "@/components/Providers";
 import Link from "next/link";
 import {
@@ -11,13 +12,36 @@ import {
 import Footer from "@/components/Footer";
 import SiteVisitModal from "@/components/SiteVisitModal";
 
+const STATUS_COLORS: Record<string, string> = {
+  Available: "#22c55e", // brand-emerald
+  Sold: "#ef4444",      // red-500
+  Held: "#f59e0b",      // amber-500
+};
+
 export default function ApartmentDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const apt = getApartmentById(resolvedParams.id);
   const { wishlist, toggleWishlist } = usePropVista();
 
+  const [apt, setApt] = useState<ApartmentDetail | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeFloorIdx, setActiveFloorIdx] = useState(0);
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
+
+  useEffect(() => {
+    apiService.getApartmentById(resolvedParams.id)
+      .then(setApt)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [resolvedParams.id]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center p-8 bg-slate-50">
+        <Building className="h-16 w-16 text-slate-300 mb-4 animate-pulse" />
+        <h2 className="text-xl font-bold text-slate-900">Loading Apartment...</h2>
+      </div>
+    );
+  }
 
   if (!apt) {
     return (
@@ -31,11 +55,11 @@ export default function ApartmentDetail({ params }: { params: Promise<{ id: stri
     );
   }
 
-  const selectedFloor = apt.floors[activeFloorIdx];
-  const allFlats = apt.floors.flatMap((f) => f.flats);
+  const selectedFloor = apt.floors?.[activeFloorIdx];
+  const allFlats = apt.floors?.flatMap((f) => f.flats || []) || [];
   const availableFlats = allFlats.filter((f) => f.status === "Available").length;
-  const minBuyPrice = Math.min(...allFlats.filter((f) => f.price_buy).map((f) => f.price_buy!));
-  const minRentPrice = Math.min(...allFlats.filter((f) => f.price_rent).map((f) => f.price_rent!));
+  const minBuyPrice = allFlats.length > 0 ? Math.min(...allFlats.filter((f) => f.price_buy).map((f) => f.price_buy!)) : 0;
+  const minRentPrice = allFlats.length > 0 ? Math.min(...allFlats.filter((f) => f.price_rent).map((f) => f.price_rent!)) : 0;
 
   const formatPrice = (n: number) => {
     if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
@@ -105,7 +129,7 @@ export default function ApartmentDetail({ params }: { params: Promise<{ id: stri
 
               {/* Flat grid for selected floor */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {selectedFloor?.flats.map((flat) => {
+                {selectedFloor?.flats?.map((flat) => {
                   const isWishlisted = wishlist.includes(flat.id);
                   return (
                     <div
@@ -167,35 +191,27 @@ export default function ApartmentDetail({ params }: { params: Promise<{ id: stri
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-bold text-slate-900 mb-4">Amenities</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {apt.amenities.map((am) => (
-                  <div key={am.id} className="flex items-start gap-3">
-                    <span className="text-xl">{ICON_MAP[am.icon] ?? "✦"}</span>
+                {(apt.amenities || []).map((am, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <span className="text-xl">✦</span>
                     <div>
-                      <p className="text-xs font-bold text-slate-800">{am.name}</p>
-                      <p className="text-[10px] text-slate-500 leading-snug">{am.description}</p>
+                      <p className="text-xs font-bold text-slate-800">{am}</p>
                     </div>
                   </div>
                 ))}
+                {(!apt.amenities || apt.amenities.length === 0) && (
+                  <p className="text-xs text-slate-500">No amenities listed.</p>
+                )}
               </div>
             </div>
 
-            {/* Nearby Places */}
+            {/* Nearby Places (Coming Soon) */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <Navigation className="h-4 w-4 text-brand-blue" /> Nearby Places
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {apt.nearby_places.map((place) => (
-                  <div key={place.id} className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-                    <div className="text-lg">
-                      {{ School: "🏫", Hospital: "🏥", Shopping: "🛒", Transit: "🚌", Temple: "🛕", Bank: "🏦" }[place.category] ?? "📍"}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-900">{place.place_name}</p>
-                      <p className="text-[10px] text-slate-500">{place.category} · {place.distance} km</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="py-4 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50">
+                <p className="text-xs text-slate-500">Location data and nearby places will be available soon.</p>
               </div>
             </div>
           </div>

@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useState } from "react";
-import { MOCK_FLATS as MOCK_UNITS } from "@/data/mockData";
+import { useEffect, use, useState } from "react";
+import { apiService } from "@/services/apiService";
+import type { Flat } from "@/types/real-estate";
 import { usePropVista } from "@/components/Providers";
 import Link from "next/link";
 import { 
@@ -14,8 +15,8 @@ export default function UnitDetails({ params }: { params: Promise<{ unitId: stri
   const resolvedParams = use(params);
   const { wishlist, toggleWishlist, compareList, addToCompare, removeFromCompare } = usePropVista();
 
-  // Find unit
-  const baseUnit = MOCK_UNITS.find((u) => u.id === resolvedParams.unitId);
+  const [baseUnit, setBaseUnit] = useState<Flat | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Local state for holding or booking (for sandbox demo)
   const [localStatus, setLocalStatus] = useState<string | null>(null);
@@ -25,6 +26,28 @@ export default function UnitDetails({ params }: { params: Promise<{ unitId: stri
 
   // Active gallery image
   const [activeImg, setActiveImg] = useState("");
+
+  useEffect(() => {
+    apiService.getFlatById(resolvedParams.unitId)
+      .then(setBaseUnit)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [resolvedParams.unitId]);
+
+  useEffect(() => {
+    if (baseUnit?.images?.length && !activeImg) {
+      setActiveImg(baseUnit.images[0].image_url);
+    }
+  }, [baseUnit, activeImg]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center p-8 bg-slate-50">
+        <Building className="h-16 w-16 text-slate-300 mb-4 animate-pulse" />
+        <h2 className="text-xl font-bold text-slate-900">Loading Unit...</h2>
+      </div>
+    );
+  }
 
   if (!baseUnit) {
     return (
@@ -39,10 +62,6 @@ export default function UnitDetails({ params }: { params: Promise<{ unitId: stri
   }
 
   const currentStatus = localStatus || baseUnit.status;
-
-  if (baseUnit.images.length > 0 && !activeImg) {
-    setActiveImg(baseUnit.images[0].image_url);
-  }
 
   const handleHold = () => {
     if (currentStatus === "Available") {

@@ -3,7 +3,7 @@
 import { use, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiService } from "@/services/apiService";
-import { Flat } from "@/types/real-estate";
+import type { Flat } from "@/types/real-estate";
 import Link from "next/link";
 import { ArrowLeft, CreditCard, ShieldCheck, ShoppingCart, HelpCircle } from "lucide-react";
 import Footer from "@/components/Footer";

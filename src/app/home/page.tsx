@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import {
     Search, Building2, ShieldCheck, Sparkles, ArrowRight, MapPin,
@@ -9,8 +9,8 @@ import {
     Star, Phone, Mail, MessageSquare,
 } from "lucide-react";
 import Footer from "@/components/Footer";
-import { MOCK_APARTMENTS } from "@/data/mockData";
-
+import { apiService } from "@/services/apiService";
+import type { Apartment, Flat } from "@/types/real-estate";
 // ─── Animation helpers ────────────────────────────────────────
 const fadeUp: Variants = {
     hidden: { opacity: 0, y: 32 },
@@ -146,7 +146,19 @@ export default function Home() {
     const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
     const [contactSent, setContactSent] = useState(false);
 
-    const filteredApts = MOCK_APARTMENTS.filter(
+    const [apartments, setApartments] = useState<Apartment[]>([]);
+    const [flats, setFlats] = useState<Flat[]>([]);
+
+    useEffect(() => {
+        Promise.all([apiService.getApartments(), apiService.getFlats()])
+            .then(([apts, fls]) => {
+                setApartments(apts);
+                setFlats(fls);
+            })
+            .catch(console.error);
+    }, []);
+
+    const filteredApts = apartments.filter(
         (apt) =>
             apt.name.toLowerCase().includes(search.toLowerCase()) ||
             apt.address.toLowerCase().includes(search.toLowerCase())
@@ -335,9 +347,9 @@ export default function Home() {
                         className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3"
                     >
                         {filteredApts.map((apt) => {
-                            const allFlats = apt.floors.flatMap((fl) => fl.flats);
-                            const availableCount = allFlats.filter((f) => f.status === "Available").length;
-                            const minPrice = Math.min(...allFlats.map((f) => f.price_buy ?? Infinity));
+                            const aptFlats = flats.filter(f => f.apartment_id === apt.id);
+                            const availableCount = aptFlats.filter((f) => f.status === "Available").length;
+                            const minPrice = aptFlats.length > 0 ? Math.min(...aptFlats.map((f) => f.price_buy ?? Infinity)) : 0;
 
                             return (
                                 <motion.div
@@ -374,7 +386,7 @@ export default function Home() {
                                         <div className="mt-4 flex flex-wrap gap-2">
                                             {[
                                                 `${apt.total_floors} Floors`,
-                                                `${allFlats.length} Flats`,
+                                                `${aptFlats.length} Flats`,
                                                 `₹${(minPrice / 100000).toFixed(0)}L+`,
                                             ].map((label) => (
                                                 <span key={label} className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600">

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { MOCK_FLATS, MOCK_APARTMENTS, STATUS_COLORS } from "@/data/mockData";
+import { apiService } from "@/services/apiService";
+import type { Flat, Apartment } from "@/types/real-estate";
 import { usePropVista } from "@/components/Providers";
 import Link from "next/link";
 import {
@@ -14,13 +15,19 @@ import Footer from "@/components/Footer";
 const FACINGS = ["All", "North", "South", "East", "West", "North East", "North West", "South East", "South West"];
 const STATUSES = ["All", "Available", "Held", "Booked", "Sold", "Rented"];
 const BHK_OPTIONS = ["All", "2BHK", "3BHK"];
-const APARTMENTS_FILTER = ["All", "Happy Homes", "Green Valley Residency", "Skyline Residency"];
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest First" },
   { value: "price_low", label: "Price: Low to High" },
   { value: "price_high", label: "Price: High to Low" },
   { value: "area", label: "Area: Largest First" },
 ];
+
+const STATUS_COLORS: Record<string, string> = {
+  "Available": "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
+  "Reserved": "bg-blue-500/20 text-blue-600 border-blue-500/30",
+  "Sold": "bg-slate-500/20 text-slate-600 border-slate-500/30",
+  "Rented": "bg-violet-500/20 text-violet-600 border-violet-500/30",
+};
 
 export default function Properties() {
   const searchParams = useSearchParams();
@@ -36,15 +43,27 @@ export default function Properties() {
   const [sortBy, setSortBy] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
 
+  const [apartments, setApartments] = useState<Apartment[]>([]);
+  const [flats, setFlats] = useState<Flat[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const urlSearch = searchParams.get("search");
     if (urlSearch) setSearch(urlSearch);
     const urlBhk = searchParams.get("bhk");
     if (urlBhk && urlBhk !== "All") setBhk(urlBhk);
+    
+    Promise.all([apiService.getApartments(), apiService.getFlats()])
+      .then(([apts, fls]) => {
+        setApartments(apts);
+        setFlats(fls);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [searchParams]);
 
   // Filter & Sort
-  let filtered = MOCK_FLATS.filter((flat) => {
+  let filtered = flats.filter((flat) => {
     const matchesSearch =
       flat.flat_number.toLowerCase().includes(search.toLowerCase()) ||
       (flat.apartment_name || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -99,7 +118,7 @@ export default function Properties() {
             Available Flats — Nandyal
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Showing {filtered.length} of {MOCK_FLATS.length} flats across 3 communities
+            Showing {filtered.length} of {flats.length} flats across {apartments.length} communities
           </p>
 
           {/* Top bar: search + filters toggle */}
@@ -148,7 +167,8 @@ export default function Properties() {
                   onChange={(e) => setApartmentFilter(e.target.value)}
                   className="w-full rounded-md bg-slate-900 border border-slate-700 py-2 px-2 text-xs text-white focus:outline-none"
                 >
-                  {APARTMENTS_FILTER.map((a) => <option key={a}>{a}</option>)}
+                  <option value="All">All</option>
+                  {apartments.map((a) => <option key={a.id} value={a.name}>{a.name}</option>)}
                 </select>
               </div>
               {/* BHK */}
@@ -222,11 +242,15 @@ export default function Properties() {
 
       {/* ── Flat Grid ────────────────────────────────────────── */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 flex-grow w-full">
-        {filtered.length === 0 ? (
-          <div className="text-center py-24 border border-dashed border-slate-200 rounded-2xl bg-white">
-            <Building className="mx-auto h-14 w-14 text-slate-300" />
-            <h3 className="mt-3 text-sm font-semibold text-slate-900">No flats found</h3>
-            <p className="mt-1 text-xs text-slate-500">Try changing your search or filter criteria.</p>
+        {loading ? (
+          <div className="col-span-full py-20 text-center text-slate-400">
+            Loading properties...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="col-span-full py-20 text-center">
+            <Search className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-slate-900">No flats found</h3>
+            <p className="text-sm text-slate-500 mt-1">Try adjusting your filters or search terms.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

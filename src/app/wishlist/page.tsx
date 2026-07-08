@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePropVista } from "@/components/Providers";
-import { MOCK_FLATS as MOCK_UNITS } from "@/data/mockData";
+import { apiService } from "@/services/apiService";
+import type { Flat } from "@/types/real-estate";
 import Link from "next/link";
 import { Heart, ArrowRight, Grid, Trash2 } from "lucide-react";
 import Footer from "@/components/Footer";
@@ -9,7 +11,30 @@ import Footer from "@/components/Footer";
 export default function WishlistPage() {
   const { wishlist, toggleWishlist } = usePropVista();
 
-  const wishlistedUnits = MOCK_UNITS.filter((u) => wishlist.includes(u.id));
+  const [flats, setFlats] = useState<Flat[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (wishlist.length > 0) {
+      apiService.getFlats()
+        .then(setFlats)
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [wishlist.length]);
+
+  const wishlistedUnits = flats.filter((u) => wishlist.includes(u.id));
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center bg-slate-50">
+        <Heart className="h-12 w-12 text-slate-300 animate-pulse mb-4" />
+        <p className="text-sm text-slate-500 font-medium">Loading Wishlist...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">

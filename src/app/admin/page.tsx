@@ -81,8 +81,22 @@ export default function AdminDashboard() {
   const [flatShortDesc, setFlatShortDesc] = useState("");
   const [flatLongDesc, setFlatLongDesc] = useState("");
 
-  // UI Notification helper
+  // UI Notification helpers
   const [alertMsg, setAlertMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const showSuccess = (msg: string) => {
+    setErrorMsg("");
+    setAlertMsg(msg);
+    setTimeout(() => setAlertMsg(""), 5000);
+  };
+
+  const showError = (msg: string) => {
+    setAlertMsg("");
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(""), 8000);
+  };
 
   useEffect(() => {
     loadInitData();
@@ -105,8 +119,12 @@ export default function AdminDashboard() {
 
       const statsData = await apiService.getDashboardStats();
       setStats(statsData);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error loading administrative data:", err);
+      showError(
+        "Could not connect to the backend API (port 8002). " +
+        "Please start the FastAPI server: run `uvicorn app.main:app --port 8002 --reload` in the propvista-backend directory."
+      );
     } finally {
       setLoading(false);
     }
@@ -151,6 +169,10 @@ export default function AdminDashboard() {
 
   const handleCreateApartment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedCityId) { showError("Please select a city first."); return; }
+    if (!aptName.trim()) { showError("Community name is required."); return; }
+    if (!aptAddress.trim()) { showError("Address is required."); return; }
+    setSubmitting(true);
     try {
       await apiService.createApartment({
         city_id: selectedCityId,
@@ -172,7 +194,6 @@ export default function AdminDashboard() {
         is_active: true,
       });
 
-      setAlertMsg("Apartment Community successfully registered.");
       setAptName("");
       setAptDesc("");
       setAptAddress("");
@@ -180,10 +201,14 @@ export default function AdminDashboard() {
       setAptBuilder("");
       setAptContact("");
       setAptEmail("");
-      reloadStats();
-      setTimeout(() => setAlertMsg(""), 4000);
-    } catch (err) {
+      await reloadStats();
+      showSuccess("Apartment Community successfully registered. It is now live on the Customer pages.");
+    } catch (err: any) {
       console.error("Apartment creation error:", err);
+      const detail = err?.response?.data?.detail || err?.message || "Unknown error";
+      showError(`Failed to create community: ${detail}. Make sure the backend server is running on port 8002.`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -214,19 +239,22 @@ export default function AdminDashboard() {
 
   const handleAddFloor = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAptId) return;
+    if (!selectedAptId) { showError("Please select a community first."); return; }
+    setSubmitting(true);
     try {
       await apiService.createFloor(selectedAptId, newFloorNum, newFloorName, newFloorDesc);
       setNewFloorName("");
       setNewFloorDesc("");
-      // Refresh floor list
       const data = await apiService.getFloorsByApartment(selectedAptId);
       setFloors(data);
-      reloadStats();
-      setAlertMsg("Floor hierarchy added.");
-      setTimeout(() => setAlertMsg(""), 3000);
-    } catch (err) {
+      await reloadStats();
+      showSuccess("Floor hierarchy added.");
+    } catch (err: any) {
       console.error(err);
+      const detail = err?.response?.data?.detail || err?.message || "Unknown error";
+      showError(`Failed to add floor: ${detail}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -235,16 +263,20 @@ export default function AdminDashboard() {
       try {
         await apiService.deleteFloor(id);
         setFloors(floors.filter((f) => f.id !== id));
-        reloadStats();
-      } catch (err) {
+        await reloadStats();
+        showSuccess("Floor deleted.");
+      } catch (err: any) {
         console.error(err);
+        showError(`Failed to delete floor: ${err?.response?.data?.detail || err?.message}`);
       }
     }
   };
 
   const handleAddFlat = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFloorId) return;
+    if (!selectedFloorId) { showError("Please select a floor first."); return; }
+    if (!flatNum.trim()) { showError("Flat number is required."); return; }
+    setSubmitting(true);
     try {
       await apiService.createFlat(selectedFloorId, {
         floor_id: selectedFloorId,
@@ -271,14 +303,16 @@ export default function AdminDashboard() {
       setFlatShortDesc("");
       setFlatLongDesc("");
 
-      // Refresh flat lists
       const data = await apiService.getFlats({ floor_id: selectedFloorId });
       setFlats(data);
-      reloadStats();
-      setAlertMsg("Flat successfully created.");
-      setTimeout(() => setAlertMsg(""), 3000);
-    } catch (err) {
+      await reloadStats();
+      showSuccess("Flat successfully created. It is now live on the Customer properties page.");
+    } catch (err: any) {
       console.error(err);
+      const detail = err?.response?.data?.detail || err?.message || "Unknown error";
+      showError(`Failed to create flat: ${detail}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -287,9 +321,11 @@ export default function AdminDashboard() {
       try {
         await apiService.deleteFlat(id);
         setFlats(flats.filter((f) => f.id !== id));
-        reloadStats();
-      } catch (err) {
+        await reloadStats();
+        showSuccess("Flat deleted.");
+      } catch (err: any) {
         console.error(err);
+        showError(`Failed to delete flat: ${err?.response?.data?.detail || err?.message}`);
       }
     }
   };
@@ -299,9 +335,11 @@ export default function AdminDashboard() {
       await apiService.changeFlatStatus(flatId, nextStatus);
       const data = await apiService.getFlats({ floor_id: selectedFloorId });
       setFlats(data);
-      reloadStats();
-    } catch (err) {
+      await reloadStats();
+      showSuccess(`Flat status updated to ${nextStatus}.`);
+    } catch (err: any) {
       console.error(err);
+      showError(`Failed to update status: ${err?.response?.data?.detail || err?.message}`);
     }
   };
 
@@ -314,11 +352,18 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-black text-brand-dark mb-2">Backoffice Property Console</h1>
             <p className="text-xs text-brand-gray">Create housing hierarchies, track occupancy metrics, and manage community inventory.</p>
           </div>
-          {alertMsg && (
-            <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2 text-xs font-bold text-emerald-700 flex items-center gap-1.5 animate-bounce">
-              <Check className="h-4 w-4" /> {alertMsg}
-            </div>
-          )}
+          <div className="flex flex-col gap-2 items-end">
+            {alertMsg && (
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2 text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+                <Check className="h-4 w-4" /> {alertMsg}
+              </div>
+            )}
+            {errorMsg && (
+              <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-2 text-xs font-bold text-red-700 flex items-center gap-1.5 max-w-sm">
+                <span className="shrink-0">⚠</span> {errorMsg}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Toolbar Tabs */}
@@ -593,10 +638,11 @@ export default function AdminDashboard() {
 
                 <button
                   type="submit"
-                  className="rounded-lg bg-brand-blue hover:bg-brand-blue-hover px-5 py-2.5 text-xs font-bold text-white shadow-sm flex items-center gap-1.5"
+                  disabled={submitting}
+                  className="rounded-lg bg-brand-blue hover:bg-brand-blue-hover px-5 py-2.5 text-xs font-bold text-white shadow-sm flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <Plus className="h-4.5 w-4.5" />
-                  Initialize Community
+                  {submitting ? "Initializing..." : "Initialize Community"}
                 </button>
               </form>
             </div>
@@ -725,9 +771,10 @@ export default function AdminDashboard() {
 
                   <button
                     type="submit"
-                    className="w-full rounded-lg bg-brand-blue hover:bg-brand-blue-hover py-2.5 text-xs font-bold text-white shadow-sm flex items-center justify-center gap-1.5"
+                    disabled={submitting}
+                    className="w-full rounded-lg bg-brand-blue hover:bg-brand-blue-hover py-2.5 text-xs font-bold text-white shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <Plus className="h-4 w-4" /> Add Floor
+                    <Plus className="h-4 w-4" /> {submitting ? "Adding..." : "Add Floor"}
                   </button>
                 </form>
               </div>
@@ -929,9 +976,10 @@ export default function AdminDashboard() {
 
                   <button
                     type="submit"
-                    className="w-full rounded-lg bg-brand-blue hover:bg-brand-blue-hover py-2.5 text-xs font-bold text-white shadow-sm flex items-center justify-center gap-1.5"
+                    disabled={submitting}
+                    className="w-full rounded-lg bg-brand-blue hover:bg-brand-blue-hover py-2.5 text-xs font-bold text-white shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <Plus className="h-4 w-4" /> Create Flat
+                    <Plus className="h-4 w-4" /> {submitting ? "Creating..." : "Create Flat"}
                   </button>
                 </form>
               </div>
