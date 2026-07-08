@@ -75,10 +75,24 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
+    const trimmedEmail = email.trim().toLowerCase();
+
+    console.log("[PropVista Auth] Attempting sign-in for:", trimmedEmail, "| Tab:", activeTab);
+
     const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email,
+      email: trimmedEmail,
       password,
     });
+
+    console.log("[PropVista Auth] Supabase response — data:", JSON.stringify(data, null, 2));
+    if (authError) {
+      console.error("[PropVista Auth] Supabase error:", {
+        message: authError.message,
+        status: (authError as any).status,
+        name: authError.name,
+        code: (authError as any).code,
+      });
+    }
 
     if (authError) {
       setLoading(false);
