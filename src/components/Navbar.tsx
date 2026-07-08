@@ -21,14 +21,30 @@ export default function Navbar() {
   const getDashboardLink = () => {
     if (role === "Admin") return "/admin";
     if (role === "Resident") return "/resident";
-    return "/dashboard";
+    return "/home";
   };
 
   const navLinks = [
-    { label: "Home", href: "/", icon: Home },
-    { label: "Apartments", href: "/properties", icon: Building2 },
-    { label: "About", href: "/about", icon: Info },
-    { label: "Contact", href: "/#contact", icon: Phone },
+    {
+      label: "Home",
+      href: user ? getDashboardLink() : "/",
+      icon: Home,
+    },
+    {
+      label: "Apartments",
+      href: "/apartments",
+      icon: Building2,
+    },
+    {
+      label: "About",
+      href: "/about",
+      icon: Info,
+    },
+    {
+      label: "Contact",
+      href: "/contact",
+      icon: Phone,
+    },
   ];
 
   const handleSignOut = async () => {

@@ -60,7 +60,7 @@ export default function LoginPage() {
           router.replace("/resident");
           break;
         default:
-          router.replace("/dashboard");
+          router.replace("/home");
           break;
       }
       router.refresh();
@@ -148,7 +148,7 @@ export default function LoginPage() {
         router.replace("/resident");
         break;
       default:
-        router.replace("/dashboard");
+        router.replace("/home");
     }
   };
 
@@ -193,8 +193,8 @@ export default function LoginPage() {
               <button
                 onClick={() => { setActiveTab("customer"); setError(""); }}
                 className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-all ${activeTab === "customer"
-                    ? "bg-blue-600 text-white shadow-lg"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                  ? "bg-blue-600 text-white shadow-lg"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
                   }`}
               >
                 <Home className="h-4 w-4" />
@@ -204,8 +204,8 @@ export default function LoginPage() {
               <button
                 onClick={() => { setActiveTab("resident"); setError(""); }}
                 className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-all ${activeTab === "resident"
-                    ? "bg-emerald-600 text-white shadow-lg"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                  ? "bg-emerald-600 text-white shadow-lg"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
                   }`}
               >
                 <Users className="h-4 w-4" />
@@ -215,8 +215,8 @@ export default function LoginPage() {
               <button
                 onClick={() => { setActiveTab("admin"); setError(""); }}
                 className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-all ${activeTab === "admin"
-                    ? "bg-violet-600 text-white shadow-lg"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                  ? "bg-violet-600 text-white shadow-lg"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
                   }`}
               >
                 <ShieldCheck className="h-4 w-4" />
@@ -272,8 +272,8 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-700 ${activeTab === "customer" ? "bg-blue-600 hover:bg-blue-500" :
-                  activeTab === "resident" ? "bg-emerald-600 hover:bg-emerald-500" :
-                    "bg-violet-600 hover:bg-violet-500"
+                activeTab === "resident" ? "bg-emerald-600 hover:bg-emerald-500" :
+                  "bg-violet-600 hover:bg-violet-500"
                 }`}
             >
               {loading ? (
