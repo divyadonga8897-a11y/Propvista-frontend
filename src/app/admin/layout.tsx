@@ -4,6 +4,7 @@ import { usePropVista } from "@/components/Providers";
 import AdminSidebar from "@/components/AdminSidebar";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -11,6 +12,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   console.log("Admin Layout");
   console.log("User:", user);
   console.log("Role:", role);
+
+  useEffect(() => {
+    if (!authLoading && (!user || role !== "Admin")) {
+      router.replace("/dashboard");
+    }
+  }, [user, role, authLoading, router]);
 
   if (authLoading) {
     return (
@@ -21,12 +28,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (!user || role !== "Admin") {
-    // Redirect unauthorized access to the main dashboard
-    if (typeof window !== "undefined") {
-      router.replace("/dashboard");
-    }
-    return null;
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+      </div>
+    );
   }
+
   return (
     <div className="flex bg-slate-50 min-h-screen w-full font-sans text-slate-900">
       <AdminSidebar />

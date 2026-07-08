@@ -18,7 +18,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/reportUtils';
 
 export default function AdminDashboard() {
   // Tab states
-  const [activeTab, setActiveTab] = useState<"stats" | "apartments" | "floors" | "flats" | "bookings" | "payments" | "ai" | "site-visits" | "audit-logs">("apartments");
+  const [activeTab, setActiveTab] = useState<"stats" | "apartments" | "floors" | "flats" | "bookings" | "payments" | "ai" | "site-visits" | "audit-logs">("payments");
 
   // Booking, Payment, Site Visits & Audit Logs admin data
   const [adminBookings, setAdminBookings] = useState<any[]>([]);

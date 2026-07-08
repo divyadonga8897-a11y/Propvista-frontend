@@ -74,7 +74,7 @@ export default function AdminSidebar() {
             <p className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">{group.group}</p>
             <div className="space-y-1">
               {group.items.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
                 return (
                   <Link
                     key={item.href}

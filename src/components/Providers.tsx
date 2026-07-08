@@ -82,12 +82,21 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   // ── Supabase Auth listener ────────────────────────────────
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setRole(extractRole(session?.user ?? null));
-      setAuthLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error("Supabase Auth Error:", error);
+        }
+        setSession(session);
+        setUser(session?.user ?? null);
+        setRole(extractRole(session?.user ?? null));
+      })
+      .catch((err) => {
+        console.error("Session fetch error:", err);
+      })
+      .finally(() => {
+        setAuthLoading(false);
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
