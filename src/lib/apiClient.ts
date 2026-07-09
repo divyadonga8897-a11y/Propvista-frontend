@@ -18,8 +18,14 @@ apiClient.interceptors.request.use(
       data: { session },
     } = await supabase.auth.getSession();
 
+    console.log("Session:", session);
+    console.log("Access Token:", session?.access_token);
+
     if (session?.access_token) {
       config.headers.Authorization = `Bearer ${session.access_token}`;
+      console.log("Authorization Header Added");
+    } else {
+      console.log("No session found. Authorization header NOT added.");
     }
 
     return config;

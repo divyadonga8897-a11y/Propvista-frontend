@@ -21,7 +21,7 @@ export default function Navbar() {
   const getDashboardLink = () => {
     if (role === "Admin") return "/admin";
     if (role === "Resident") return "/resident";
-    return "/home";
+    return "/dashboard";
   };
 
   const navLinks = [
