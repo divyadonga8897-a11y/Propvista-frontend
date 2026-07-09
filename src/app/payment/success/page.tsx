@@ -1,81 +1,161 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiService } from "@/services/apiService";
 import Link from "next/link";
-import { CheckCircle, Download, LayoutDashboard, FileText } from "lucide-react";
+import {
+  CheckCircle, Download, LayoutDashboard, FileText, Loader2,
+  Clock, ShieldCheck, Building2, Home, Layers, CreditCard
+} from "lucide-react";
 import Footer from "@/components/Footer";
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
+  const paymentId = searchParams.get("paymentId");
   const [booking, setBooking] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (bookingId) {
-      apiService.getBookingById(bookingId).then((data) => {
-        setBooking(data);
-        setLoading(false);
-      }).catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-    } else {
+    if (!bookingId) {
       setLoading(false);
+      return;
     }
+    // Poll briefly to let backend finish generating documents
+    const fetchData = async () => {
+      try {
+        const [bk, docs] = await Promise.all([
+          apiService.getBookingById(bookingId),
+          apiService.getDocuments().catch(() => []),
+        ]);
+        setBooking(bk);
+        // Filter documents for this booking
+        setDocuments((docs || []).filter((d: any) => d.booking_id === bookingId));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    // Small delay to allow async PDF generation to complete on backend
+    const t = setTimeout(fetchData, 2000);
+    return () => clearTimeout(t);
   }, [bookingId]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center bg-slate-50">
+        <Loader2 className="h-10 w-10 text-blue-500 animate-spin mb-4" />
+        <p className="text-sm font-bold text-slate-700">Finalising your booking...</p>
+        <p className="text-xs text-slate-400 mt-1">Generating legal documents & sending approval request</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      <div className="max-w-md mx-auto px-4 py-16 w-full flex-grow flex flex-col justify-center">
-        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xl text-center space-y-6 animate-fade-in-scale">
-          <div className="h-16 w-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto text-emerald-500 border border-emerald-100">
-            <CheckCircle className="h-9 w-9" />
-          </div>
-          
-          <div className="space-y-2">
-            <h1 className="text-xl font-black text-slate-900">Payment Reconciled!</h1>
-            <p className="text-xs text-slate-500 leading-relaxed px-2">
-              Order verified. You are now officially registered as a **Resident** of {booking?.flat?.apartment_name || "the apartment community"}.
-            </p>
+      <div className="max-w-xl mx-auto px-4 py-16 w-full flex-grow flex flex-col justify-center">
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xl space-y-6">
+
+          {/* Success Icon */}
+          <div className="h-18 w-18 bg-emerald-50 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-100">
+            <CheckCircle className="h-10 w-10 text-emerald-500" />
           </div>
 
-          {booking && booking.documents && booking.documents.length > 0 && (
-            <div className="bg-slate-50 rounded-2xl p-4 text-left space-y-3">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block border-b pb-1.5">Generated Documents</span>
-              {booking.documents.map((doc: any) => (
-                <div key={doc.id} className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-slate-700 flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5 text-brand-blue" />
-                    {doc.name}
-                  </span>
-                  <a
-                    href={doc.file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[10px] font-bold text-brand-blue flex items-center gap-1 hover:underline"
-                  >
-                    <Download className="h-3 w-3" /> View/Download
-                  </a>
+          {/* Title */}
+          <div className="text-center space-y-1.5">
+            <h1 className="text-2xl font-black text-slate-900">Payment Successful!</h1>
+            <p className="text-sm text-slate-500">Your booking has been confirmed and documents are being generated.</p>
+          </div>
+
+          {/* Property Details */}
+          {booking && (
+            <div className="bg-slate-50 rounded-2xl p-4 space-y-2">
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">Property Booked</p>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="bg-white rounded-xl p-2.5 border border-slate-100">
+                  <Building2 className="h-4 w-4 text-blue-500 mx-auto mb-1" />
+                  <p className="text-[9px] text-slate-400 uppercase font-semibold">Apartment</p>
+                  <p className="font-bold text-slate-800 truncate">{booking.flat?.apartment_name || "—"}</p>
+                </div>
+                <div className="bg-white rounded-xl p-2.5 border border-slate-100">
+                  <Layers className="h-4 w-4 text-purple-500 mx-auto mb-1" />
+                  <p className="text-[9px] text-slate-400 uppercase font-semibold">Floor</p>
+                  <p className="font-bold text-slate-800">{booking.flat?.floor_name || "—"}</p>
+                </div>
+                <div className="bg-white rounded-xl p-2.5 border border-slate-100">
+                  <Home className="h-4 w-4 text-emerald-500 mx-auto mb-1" />
+                  <p className="text-[9px] text-slate-400 uppercase font-semibold">Flat</p>
+                  <p className="font-bold text-slate-800">{booking.flat?.flat_number || "—"}</p>
+                </div>
+              </div>
+              <div className="flex justify-between text-xs mt-2 pt-2 border-t border-slate-100">
+                <span className="text-slate-500 font-medium">Booking ID</span>
+                <span className="font-mono font-bold text-slate-700 text-[10px]">{bookingId?.substring(0, 16)}...</span>
+              </div>
+              {paymentId && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Payment ID</span>
+                  <span className="font-mono font-bold text-slate-700 text-[10px]">{paymentId}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-500 font-medium">Type</span>
+                <span className="font-bold text-slate-700">{booking.booking_type}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Status Banner */}
+          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <Clock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-amber-800">Pending Admin Approval</p>
+              <p className="text-xs text-amber-700 mt-0.5">Your Resident Access Request has been sent to the Admin. Once approved, you'll gain full access to the Resident Dashboard.</p>
+            </div>
+          </div>
+
+          {/* Generated Documents */}
+          {documents.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Generated Documents</p>
+              {documents.map((doc: any) => (
+                <div key={doc.id} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                  <div className="flex items-center gap-2.5 text-xs">
+                    <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                    <span className="font-semibold text-slate-700">{doc.name}</span>
+                  </div>
+                  {doc.file_url && (
+                    <a
+                      href={doc.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      <Download className="h-3 w-3" />
+                      Download PDF
+                    </a>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
-          <div className="flex flex-col gap-2 pt-4">
-            <Link
-              href="/dashboard"
-              className="w-full py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-hover text-white text-xs font-bold shadow flex items-center justify-center gap-1.5"
-            >
-              <LayoutDashboard className="h-4 w-4" /> Go to Dashboard
-            </Link>
+          {/* CTA Buttons */}
+          <div className="flex flex-col gap-2.5 pt-2">
             <Link
               href="/my-documents"
-              className="w-full py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 text-white text-xs font-bold shadow flex items-center justify-center gap-2 transition-all"
             >
-              <FileText className="h-4 w-4" /> View All Documents
+              <FileText className="h-4 w-4" /> View My Documents
+            </Link>
+            <Link
+              href="/dashboard"
+              className="w-full py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+            >
+              <LayoutDashboard className="h-4 w-4" /> Go to Dashboard
             </Link>
           </div>
         </div>

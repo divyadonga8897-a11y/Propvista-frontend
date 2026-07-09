@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 const apiClient = axios.create({
   baseURL:
     process.env.NEXT_PUBLIC_API_URL ||
-    "http://127.0.0.1:8002/api/v1",
+    "http://127.0.0.1:8002",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
@@ -33,31 +33,35 @@ apiClient.interceptors.response.use(
 
   async (error) => {
     const status = error.response?.status;
+    const originalRequest = error.config;
 
-    switch (status) {
-      case 401:
-        await supabase.auth.signOut();
+    if (status === 401 && !originalRequest.headers?.["X-Retry"]) {
+      if (!originalRequest.headers) originalRequest.headers = {};
+      originalRequest.headers["X-Retry"] = "true";
 
-        if (typeof window !== "undefined") {
-          window.location.href = "/login";
-        }
+      // Try refreshing the Supabase session before giving up
+      const { data, error: refreshError } = await supabase.auth.refreshSession();
 
-        break;
+      if (!refreshError && data?.session?.access_token) {
+        // Update the Authorization header and retry the original request
+        originalRequest.headers.Authorization = `Bearer ${data.session.access_token}`;
+        return apiClient(originalRequest);
+      }
 
-      case 403:
-        console.error("Permission denied");
-        break;
+      // Refresh also failed — sign out and redirect to login
+      await supabase.auth.signOut();
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+      return Promise.reject(error);
+    }
 
-      case 404:
-        console.error("API not found");
-        break;
-
-      case 500:
-        console.error("Internal Server Error");
-        break;
-
-      default:
-        break;
+    if (status === 403) {
+      console.error("Permission denied");
+    } else if (status === 404) {
+      console.error("API not found:", error.config?.url);
+    } else if (status === 500) {
+      console.error("Internal Server Error");
     }
 
     return Promise.reject(error);

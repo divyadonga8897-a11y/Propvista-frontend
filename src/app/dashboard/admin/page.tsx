@@ -333,23 +333,23 @@ export default function AdminDashboard() {
                 setActiveTab(tab);
                 if (tab === "bookings" && adminBookings.length === 0) {
                   setBkLoading(true);
-                  apiService.getBookingHistory().then(d => { setAdminBookings(d); setBkLoading(false); }).catch(() => setBkLoading(false));
+                  apiService.getBookingHistory().then(d => { setAdminBookings(d); }).catch(console.error).finally(() => setBkLoading(false));
                 }
                 if (tab === "payments" && adminPayments.length === 0) {
                   setPyLoading(true);
-                  apiService.getPaymentHistory().then(d => { setAdminPayments(d); setPyLoading(false); }).catch(() => setPyLoading(false));
+                  apiService.getPaymentHistory().then(d => { setAdminPayments(d); }).catch(console.error).finally(() => setPyLoading(false));
                 }
                 if (tab === "site-visits" && siteVisits.length === 0) {
                   setSvLoading(true);
-                  apiService.getSiteVisits().then(d => { setSiteVisits(d); setSvLoading(false); }).catch(() => setSvLoading(false));
+                  apiService.getSiteVisits().then(d => { setSiteVisits(d); }).catch(console.error).finally(() => setSvLoading(false));
                 }
                 if (tab === "audit-logs" && auditLogs.length === 0) {
                   setAlLoading(true);
-                  apiService.getAuditLogs(100).then(d => { setAuditLogs(d); setAlLoading(false); }).catch(() => setAlLoading(false));
+                  apiService.getAuditLogs(100).then(d => { setAuditLogs(d); }).catch(console.error).finally(() => setAlLoading(false));
                 }
                 if (tab === "resident-approvals" && residentApprovals.length === 0) {
                   setRaLoading(true);
-                  apiService.getResidentAccessRequests().then(d => { setResidentApprovals(d); setRaLoading(false); }).catch(() => setRaLoading(false));
+                  apiService.getResidentAccessRequests().then(d => { setResidentApprovals(d); }).catch(console.error).finally(() => setRaLoading(false));
                 }
               }}
               className={`pb-3 text-xs font-bold capitalize transition-all border-b-2 ${activeTab === tab

@@ -10,9 +10,9 @@ import {
 } from "@/types/real-estate";
 import { getFlatById as getMockFlatById } from "@/data/mockData";
 
-const isUUID = (id: string): boolean => {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-};
+const isUUID = (id: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
 import type {
   ResidentProfile,
   ResidentProperty,
@@ -201,23 +201,11 @@ export const apiService = {
 
   // ── Bookings & Payments (Stage 3) ──
   holdFlat: async (flatId: string): Promise<any> => {
-    if (!isUUID(flatId)) {
-      return { success: true, message: "Mock flat put on hold successfully (Simulation)" };
-    }
     const { data } = await apiClient.post("/api/v1/booking/hold", { flat_id: flatId });
     return data;
   },
 
   createBooking: async (flatId: string, bookingType: "BUY" | "RENT"): Promise<any> => {
-    if (!isUUID(flatId)) {
-      return {
-        id: `mock-booking-${flatId}`,
-        flat_id: flatId,
-        booking_type: bookingType,
-        status: "PENDING",
-        total_amount: bookingType === "BUY" ? 100000 : 8000,
-      };
-    }
     const { data } = await apiClient.post("/api/v1/booking/create", { flat_id: flatId, booking_type: bookingType });
     return data;
   },
@@ -228,22 +216,6 @@ export const apiService = {
   },
 
   getBookingById: async (id: string): Promise<any> => {
-    if (id.startsWith("mock-")) {
-      const flatId = id.replace("mock-booking-", "");
-      const mockFlat = getMockFlatById(flatId);
-      return {
-        id,
-        flat_id: flatId,
-        booking_type: "BUY",
-        status: "SUCCESS",
-        total_amount: 100000,
-        flat: mockFlat,
-        documents: [
-          { id: "doc-1", name: "Booking Receipt", file_url: "#" },
-          { id: "doc-2", name: "Allotment Letter", file_url: "#" }
-        ]
-      };
-    }
     const { data } = await apiClient.get(`/api/v1/booking/${id}`);
     return data;
   },
@@ -317,30 +289,19 @@ export const apiService = {
   },
 
   createPaymentOrder: async (bookingId: string, amount: number, paymentType: string = "Advance Booking"): Promise<any> => {
-    if (bookingId.startsWith("mock-")) {
-      return {
-        razorpay_key_id: "rzp_test_mockkey",
-        amount,
-        currency: "INR",
-        order_id: `mock-order-${bookingId}`,
-      };
-    }
     const { data } = await apiClient.post("/api/v1/payments/create-order", {
       booking_id: bookingId,
       amount,
-      payment_type: paymentType
+      payment_type: paymentType,
     });
     return data;
   },
 
   verifyPayment: async (orderId: string, paymentId: string, signature: string): Promise<any> => {
-    if (orderId.startsWith("mock-order-")) {
-      return { success: true, message: "Mock payment verified successfully (Simulation)" };
-    }
     const { data } = await apiClient.post("/api/v1/payments/verify", {
       razorpay_order_id: orderId,
       razorpay_payment_id: paymentId,
-      razorpay_signature: signature
+      razorpay_signature: signature,
     });
     return data;
   },
