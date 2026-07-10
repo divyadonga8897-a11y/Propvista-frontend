@@ -1,6 +1,5 @@
 "use client";
 
-import Sidebar from "@/components/Sidebar";
 //import Link from "next/link";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -344,9 +343,8 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="flex-grow flex bg-slate-50 min-h-screen">
-      <Sidebar />
-      <main className="flex-grow p-8 space-y-8 max-w-7xl mx-auto w-full">
+    <div className="bg-slate-50 min-h-screen">
+      <main className="flex-1 p-8 space-y-8 overflow-x-auto">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-black text-brand-dark mb-2">Backoffice Property Console</h1>

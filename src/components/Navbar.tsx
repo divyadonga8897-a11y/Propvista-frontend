@@ -27,12 +27,12 @@ export default function Navbar() {
   const navLinks = [
     {
       label: "Home",
-      href: user ? getDashboardLink() : "/",
+      href: "/home",
       icon: Home,
     },
     {
       label: "Apartments",
-      href: "/apartments",
+      href: "/apartment",
       icon: Building2,
     },
     {
