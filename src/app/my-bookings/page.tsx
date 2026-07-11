@@ -3,15 +3,23 @@
 import Sidebar from "@/components/Sidebar";
 import { useState, useEffect } from "react";
 import { apiService } from "@/services/apiService";
-import { Download, FileText, Calendar, DollarSign, Building } from "lucide-react";
+import { Download, Eye, Calendar, DollarSign, Building } from "lucide-react";
 import Footer from "@/components/Footer";
+import { supabase } from "@/lib/supabase";
 
 export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.access_token) {
+        setToken(session.access_token);
+      }
+    });
+
     Promise.all([
       apiService.getBookingHistory(),
       apiService.getPaymentHistory()
@@ -30,10 +38,16 @@ export default function MyBookingsPage() {
     return `₹${n.toLocaleString("en-IN")}`;
   };
 
+  const getApiUrl = (path: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+    return `${baseUrl}${path}`;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Sold":
       case "Booked":
+      case "Completed":
         return "bg-emerald-50 text-emerald-700 border-emerald-200";
       case "Rented":
         return "bg-blue-50 text-blue-700 border-blue-200";
@@ -86,18 +100,69 @@ export default function MyBookingsPage() {
                         </div>
 
                         {b.documents && b.documents.length > 0 && (
-                          <div className="space-y-1.5 self-stretch sm:self-center border-t sm:border-t-0 pt-3 sm:pt-0">
-                            {b.documents.map((doc: any) => (
-                              <a
-                                key={doc.id}
-                                href={doc.file_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-1 text-[10px] font-bold text-brand-blue hover:underline"
-                              >
-                                <Download className="h-3 w-3" /> {doc.doc_type}
-                              </a>
-                            ))}
+                          <div className="space-y-2.5 self-stretch sm:self-center border-t sm:border-t-0 pt-3 sm:pt-0">
+                            {b.documents.some((d: any) => d.doc_type === "Receipt") && (
+                              <div className="space-y-1">
+                                <span className="text-[9px] uppercase font-bold text-slate-400 block">Receipt</span>
+                                <div className="flex gap-2">
+                                  <a
+                                    href={getApiUrl(`/api/v1/documents/${b.documents.find((d: any) => d.doc_type === "Receipt").id}/view?token=${token}`)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-blue hover:underline"
+                                  >
+                                    <Eye className="h-3 w-3" /> View Receipt
+                                  </a>
+                                  <a
+                                    href={getApiUrl(`/api/v1/documents/${b.documents.find((d: any) => d.doc_type === "Receipt").id}/download?token=${token}`)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-blue hover:underline"
+                                  >
+                                    <Download className="h-3 w-3" /> Download Receipt
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                            {b.documents.some((d: any) => d.doc_type === "Sale Agreement" || d.doc_type === "Rental Agreement") && (
+                              <div className="space-y-1">
+                                <span className="text-[9px] uppercase font-bold text-slate-400 block">Agreement</span>
+                                <div className="flex gap-2">
+                                  <a
+                                    href={getApiUrl(`/api/v1/documents/${b.documents.find((d: any) => d.doc_type === "Sale Agreement" || d.doc_type === "Rental Agreement").id}/view?token=${token}`)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-blue hover:underline"
+                                  >
+                                    <Eye className="h-3 w-3" /> View Agreement
+                                  </a>
+                                  <a
+                                    href={getApiUrl(`/api/v1/documents/${b.documents.find((d: any) => d.doc_type === "Sale Agreement" || d.doc_type === "Rental Agreement").id}/download?token=${token}`)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-blue hover:underline"
+                                  >
+                                    <Download className="h-3 w-3" /> Download Agreement
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                            <div className="space-y-1">
+                              <span className="text-[9px] uppercase font-bold text-slate-400 block">Other Papers</span>
+                              <div className="flex flex-col gap-1">
+                                {b.documents.filter((d: any) => d.doc_type !== "Receipt" && d.doc_type !== "Sale Agreement" && d.doc_type !== "Rental Agreement").map((doc: any) => (
+                                  <a
+                                    key={doc.id}
+                                    href={getApiUrl(`/api/v1/documents/${doc.id}/view?token=${token}`)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-[9px] font-semibold text-slate-500 hover:text-brand-blue hover:underline"
+                                  >
+                                    <Eye className="h-2.5 w-2.5" /> {doc.doc_type}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -126,7 +191,7 @@ export default function MyBookingsPage() {
                       </div>
                       <div className="flex justify-between items-center mt-2 text-[9px] font-bold">
                         <span className="text-slate-400">Order Ref: {p.razorpay_order_id || "N/A"}</span>
-                        <span className={p.status === "Successful" ? "text-emerald-600" : "text-amber-500"}>
+                        <span className={p.status === "Successful" || p.status === "Success" ? "text-emerald-600" : "text-amber-500"}>
                           {p.status}
                         </span>
                       </div>

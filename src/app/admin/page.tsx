@@ -8,16 +8,74 @@ import { Apartment, Floor, Flat, DashboardStats, City } from "@/types/real-estat
 import {
   Building, LayoutGrid, Plus, Trash2, Edit3, Image,
   MapPin, Check, Sparkles, Sliders, DollarSign, Calendar, Eye, Activity, Info,
-  CreditCard, BookOpen, Download, FileText, BrainCircuit
+  CreditCard, BookOpen, Download, FileText, BrainCircuit,
+  ShieldCheck, XCircle, CheckCircle, User, Mail, Home, Building2, Clock, Loader2, Search
 } from "lucide-react";
 import Footer from "@/components/Footer";
 import AdminAiPanel from "@/components/AdminAiPanel";
+import { supabase } from "@/lib/supabase";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/reportUtils';
 
 export default function AdminDashboard() {
   // Tab states
-  const [activeTab, setActiveTab] = useState<"stats" | "apartments" | "floors" | "flats" | "bookings" | "payments" | "ai" | "site-visits" | "audit-logs">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "apartments" | "floors" | "flats" | "bookings" | "payments" | "site-visits" | "approvals" | "audit-logs" | "ai">("stats");
+
+  // Approval Request States
+  const [approvals, setApprovals] = useState<any[]>([]);
+  const [apLoading, setApLoading] = useState(false);
+  const [apSearch, setApSearch] = useState("");
+  const [apActiveTab, setApActiveTab] = useState("Pending");
+  const [apActionLoadingId, setApActionLoadingId] = useState<string | null>(null);
+  const [apRemarksMap, setApRemarksMap] = useState<Record<string, string>>({});
+  const [token, setToken] = useState<string | null>(null);
+
+  const loadApprovals = async () => {
+    try {
+      setApLoading(true);
+      const data = await apiService.getAllResidentAccessRequests();
+      setApprovals(data);
+    } catch (err) {
+      console.error("Failed to load approvals:", err);
+    } finally {
+      setApLoading(false);
+    }
+  };
+
+  const getApiUrl = (path: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+    return `${baseUrl}${path}`;
+  };
+
+  const handleApprove = async (id: string) => {
+    const remarks = apRemarksMap[id] || "Approved by Admin";
+    if (!confirm(`Approve this resident access request?\nRemarks: ${remarks}`)) return;
+    try {
+      setApActionLoadingId(id);
+      await apiService.approveResidentAccessRequest(id, remarks);
+      await loadApprovals();
+      showSuccess("Resident access request approved successfully.");
+    } catch (err: any) {
+      showError(err?.response?.data?.detail || "Failed to approve request.");
+    } finally {
+      setApActionLoadingId(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    const reason = apRemarksMap[id] || prompt("Enter reason for rejection (optional):") || "";
+    if (reason === null) return;
+    try {
+      setApActionLoadingId(id);
+      await apiService.rejectResidentAccessRequest(id, reason);
+      await loadApprovals();
+      showSuccess("Resident access request rejected.");
+    } catch (err: any) {
+      showError(err?.response?.data?.detail || "Failed to reject request.");
+    } finally {
+      setApActionLoadingId(null);
+    }
+  };
 
   // Booking, Payment, Site Visits & Audit Logs admin data
   const [adminBookings, setAdminBookings] = useState<any[]>([]);
@@ -99,6 +157,11 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadInitData();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.access_token) {
+        setToken(session.access_token);
+      }
+    });
   }, []);
 
   const loadInitData = async () => {
@@ -366,7 +429,7 @@ export default function AdminDashboard() {
 
         {/* Toolbar Tabs */}
         <div className="flex border-b border-slate-200 gap-6 flex-wrap">
-          {(["stats", "apartments", "floors", "flats", "bookings", "payments", "site-visits", "audit-logs", "ai"] as const).map((tab) => (
+          {(["stats", "apartments", "floors", "flats", "bookings", "payments", "site-visits", "approvals", "audit-logs", "ai"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -382,6 +445,9 @@ export default function AdminDashboard() {
                 if (tab === "site-visits" && siteVisits.length === 0) {
                   setSvLoading(true);
                   apiService.getSiteVisits().then(d => { setSiteVisits(d); }).catch(console.error).finally(() => setSvLoading(false));
+                }
+                if (tab === "approvals" && approvals.length === 0) {
+                  loadApprovals();
                 }
                 if (tab === "audit-logs" && auditLogs.length === 0) {
                   setAlLoading(true);
@@ -400,8 +466,9 @@ export default function AdminDashboard() {
                       : tab === "bookings" ? "Bookings"
                         : tab === "payments" ? "Payments"
                           : tab === "site-visits" ? "Site Visits"
-                            : tab === "audit-logs" ? "Audit Logs"
-                              : <span className="flex items-center gap-1.5"><BrainCircuit className="h-3.5 w-3.5 text-indigo-500" /> AI Analytics</span>}
+                            : tab === "approvals" ? "Resident Approvals"
+                              : tab === "audit-logs" ? "Audit Logs"
+                                : <span className="flex items-center gap-1.5"><BrainCircuit className="h-3.5 w-3.5 text-indigo-500" /> AI Analytics</span>}
             </button>
           ))}
         </div>
@@ -1436,6 +1503,215 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Resident Approvals Tab */}
+        {activeTab === "approvals" && (
+          <div className="space-y-6 animate-fade-in bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+            <div className="flex justify-between items-center border-b pb-4 border-slate-100">
+              <div>
+                <h3 className="text-sm font-bold text-brand-dark">Resident Approval Requests</h3>
+                <p className="text-xs text-brand-gray mt-0.5">Manage access permissions for new homeowners and tenants.</p>
+              </div>
+              <button
+                onClick={loadApprovals}
+                disabled={apLoading}
+                className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors flex items-center gap-1.5"
+              >
+                {apLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Refresh
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl">
+              <div className="flex gap-2 flex-wrap">
+                {["Pending", "Approved", "Rejected", "All"].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setApActiveTab(tab)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${apActiveTab === tab ? "bg-brand-blue text-white shadow-sm" : "text-slate-600 hover:bg-slate-200"}`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search by email / flat..."
+                  value={apSearch}
+                  onChange={(e) => setApSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:border-brand-blue"
+                />
+              </div>
+            </div>
+
+            {apLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                <Loader2 className="h-8 w-8 animate-spin mb-3 text-brand-blue" />
+                <p className="text-xs font-medium">Loading resident approval requests...</p>
+              </div>
+            ) : approvals.filter(a =>
+              (a.status === apActiveTab || apActiveTab === "All") &&
+              (
+                (a.customer?.email || "").toLowerCase().includes(apSearch.toLowerCase()) ||
+                (a.flat?.flat_number || "").toLowerCase().includes(apSearch.toLowerCase()) ||
+                (a.flat?.apartment_name || "").toLowerCase().includes(apSearch.toLowerCase())
+              )
+            ).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400 border border-dashed rounded-2xl">
+                <ShieldCheck className="h-10 w-10 mb-3 opacity-30 text-slate-400" />
+                <p className="text-xs font-medium">No {apActiveTab.toLowerCase()} requests found.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
+                {approvals.filter(a =>
+                  (a.status === apActiveTab || apActiveTab === "All") &&
+                  (
+                    (a.customer?.email || "").toLowerCase().includes(apSearch.toLowerCase()) ||
+                    (a.flat?.flat_number || "").toLowerCase().includes(apSearch.toLowerCase()) ||
+                    (a.flat?.apartment_name || "").toLowerCase().includes(apSearch.toLowerCase())
+                  )
+                ).map((req) => {
+                  const isProcessing = apActionLoadingId === req.id;
+                  const isPending = req.status === "Pending";
+
+                  return (
+                    <div key={req.id} className="p-5 hover:bg-slate-50/50 transition-colors animate-fade-in">
+                      <div className="flex flex-col md:flex-row md:items-start gap-4">
+                        <div className="h-10 w-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                          <ShieldCheck className="h-5 w-5" />
+                        </div>
+
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                          {/* Customer */}
+                          <div className="space-y-1">
+                            <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Customer</p>
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                              <User className="h-3.5 w-3.5 text-slate-400" />
+                              {req.customer?.full_name || req.customer?.email?.split("@")[0] || "—"}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                              <Mail className="h-3 w-3 text-slate-400" />
+                              {req.customer?.email || "—"}
+                            </div>
+                          </div>
+
+                          {/* Property */}
+                          <div className="space-y-1">
+                            <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Property</p>
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                              <Building2 className="h-3.5 w-3.5 text-blue-400" />
+                              {req.flat?.apartment_name || "—"}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                              <Home className="h-3 w-3 text-slate-400" />
+                              Flat {req.flat?.flat_number || "—"}
+                            </div>
+                          </div>
+
+                          {/* Payment Details */}
+                          <div className="space-y-1">
+                            <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Payment Details</p>
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                              <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                              ₹{req.booking?.amount_paid?.toLocaleString("en-IN") || "0"} Paid
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-medium">
+                              Ref: {req.booking?.payments?.[0]?.razorpay_payment_id || "Local Payment"}
+                            </div>
+                            <div className="text-[9px] text-slate-400 uppercase font-bold">
+                              {req.booking?.payments?.[0]?.payment_type || "Advance Booking"}
+                            </div>
+                          </div>
+
+                          {/* Status */}
+                          <div className="space-y-2">
+                            <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Status & Date</p>
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              req.status === "Approved" ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : req.status === "Rejected" ? "bg-red-50 text-red-700 border border-red-200"
+                              : "bg-orange-50 text-orange-700 border border-orange-200"
+                            }`}>
+                              {req.status}
+                            </span>
+                            <p className="text-[10px] text-slate-400 font-medium">
+                              {req.created_at ? new Date(req.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* PDF actions + remarks */}
+                      <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 border-t border-slate-50 pt-4">
+                        {req.document?.id ? (
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={getApiUrl(`/api/v1/documents/${req.document.id}/view?token=${token}`)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1 text-[11px] font-bold text-brand-blue hover:underline bg-slate-50 px-2.5 py-1.5 rounded-lg border"
+                            >
+                              <Eye className="h-3.5 w-3.5" /> View Agreement
+                            </a>
+                            <a
+                              href={getApiUrl(`/api/v1/documents/${req.document.id}/download?token=${token}`)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1 text-[11px] font-bold text-brand-blue hover:underline bg-slate-50 px-2.5 py-1.5 rounded-lg border"
+                            >
+                              <Download className="h-3.5 w-3.5" /> Download PDF
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic">No document generated</span>
+                        )}
+
+                        {isPending && (
+                          <>
+                            <input
+                              type="text"
+                              placeholder="Remarks/Reason (required for rejection)..."
+                              value={apRemarksMap[req.id] || ""}
+                              onChange={(e) => setApRemarksMap(prev => ({ ...prev, [req.id]: e.target.value }))}
+                              className="flex-1 text-xs border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-brand-blue"
+                            />
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={() => handleApprove(req.id)}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors flex items-center gap-1 disabled:opacity-50"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (!apRemarksMap[req.id]) {
+                                    alert("Rejection remarks/reason is required.");
+                                    return;
+                                  }
+                                  handleReject(req.id);
+                                }}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-colors flex items-center gap-1 disabled:opacity-50"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </>
+                        )}
+
+                        {!isPending && req.remarks && (
+                          <p className="text-xs text-slate-500 italic ml-1 bg-slate-100 px-3 py-1 rounded-lg">Remarks: {req.remarks}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

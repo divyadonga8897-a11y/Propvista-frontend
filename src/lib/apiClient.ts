@@ -18,14 +18,8 @@ apiClient.interceptors.request.use(
       data: { session },
     } = await supabase.auth.getSession();
 
-    console.log("Session:", session);
-    console.log("Access Token:", session?.access_token);
-
     if (session?.access_token) {
       config.headers.Authorization = `Bearer ${session.access_token}`;
-      console.log("Authorization Header Added");
-    } else {
-      console.log("No session found. Authorization header NOT added.");
     }
 
     return config;
@@ -41,25 +35,32 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
     const originalRequest = error.config;
 
-    if (status === 401 && !originalRequest.headers?.["X-Retry"]) {
-      if (!originalRequest.headers) originalRequest.headers = {};
-      originalRequest.headers["X-Retry"] = "true";
-
-      // Try refreshing the Supabase session before giving up
-      const { data, error: refreshError } = await supabase.auth.refreshSession();
-
-      if (!refreshError && data?.session?.access_token) {
-        // Update the Authorization header and retry the original request
-        originalRequest.headers.Authorization = `Bearer ${data.session.access_token}`;
-        return apiClient(originalRequest);
+    if (status === 401) {
+      // If the caller requested no automatic redirect, reject immediately
+      if (originalRequest.headers?.["X-No-Redirect"] === "true") {
+        return Promise.reject(error);
       }
 
-      // Refresh also failed — sign out and redirect to login
-      await supabase.auth.signOut();
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+      if (!originalRequest.headers?.["X-Retry"]) {
+        if (!originalRequest.headers) originalRequest.headers = {};
+        originalRequest.headers["X-Retry"] = "true";
+
+        // Try refreshing the Supabase session before giving up
+        const { data, error: refreshError } = await supabase.auth.refreshSession();
+
+        if (!refreshError && data?.session?.access_token) {
+          // Update the Authorization header and retry the original request
+          originalRequest.headers.Authorization = `Bearer ${data.session.access_token}`;
+          return apiClient(originalRequest);
+        }
+
+        // Refresh also failed — sign out and redirect to login
+        await supabase.auth.signOut();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+        return Promise.reject(error);
       }
-      return Promise.reject(error);
     }
 
     if (status === 403) {

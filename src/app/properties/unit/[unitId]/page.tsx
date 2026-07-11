@@ -286,7 +286,7 @@ export default function UnitDetails({ params }: { params: Promise<{ unitId: stri
         </div>
       </div>
 
-      {/* Booking Checkout Modal Mock (Razorpay Test Mode) */}
+      {/* Booking Checkout Modal Mock (Local Payment) */}
       {bookingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 animate-fade-in">
@@ -294,7 +294,7 @@ export default function UnitDetails({ params }: { params: Promise<{ unitId: stri
               <div className="text-center py-10 space-y-4">
                 <Loader2 className="mx-auto h-12 w-12 text-brand-blue animate-spin" />
                 <h3 className="text-sm font-bold text-brand-dark">Connecting to Gateway...</h3>
-                <p className="text-[11px] text-brand-gray">Razorpay sandbox test mode loading. Do not refresh.</p>
+                <p className="text-[11px] text-brand-gray">Secure payment loading. Do not refresh.</p>
               </div>
             ) : paymentSuccess ? (
               <div className="text-center py-10 space-y-4">

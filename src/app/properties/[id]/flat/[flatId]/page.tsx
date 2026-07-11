@@ -155,8 +155,15 @@ export default function NestedFlatDetailPage({
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center h-80 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 text-sm">
-                No flat images available
+              <div className="relative h-72 sm:h-96 rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
+                <img
+                  src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=60"
+                  alt="No flat images available placeholder"
+                  className="w-full h-full object-cover grayscale opacity-80"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/40 text-xs font-bold text-white uppercase tracking-widest">
+                  No images available
+                </div>
               </div>
             )}
           </div>
@@ -205,13 +212,13 @@ export default function NestedFlatDetailPage({
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                  { icon: Layers, label: "Flat Type", val: flat.flat_type },
-                  { icon: Ruler, label: "Super Area", val: `${flat.area_sqft} sqft` },
-                  { icon: Compass, label: "Facing", val: flat.facing_direction },
-                  { icon: Bed, label: "Bedrooms", val: `${flat.bedrooms} BHK` },
-                  { icon: Bath, label: "Bathrooms", val: `${flat.bathrooms} Baths` },
-                  { icon: Key, label: "Parking", val: `${flat.parking_slots} Slot(s)` },
-                  { icon: Key, label: "Balcony", val: `${flat.balconies} Balconies` },
+                  { icon: Layers, label: "Flat Type", val: flat.flat_type ?? "N/A" },
+                  { icon: Ruler, label: "Super Area", val: flat.area_sqft ? `${flat.area_sqft} sqft` : "N/A" },
+                  { icon: Compass, label: "Facing", val: flat.facing_direction ?? "N/A" },
+                  { icon: Bed, label: "Bedrooms", val: flat.bedrooms ? `${flat.bedrooms} BHK` : "N/A" },
+                  { icon: Bath, label: "Bathrooms", val: flat.bathrooms ? `${flat.bathrooms} Baths` : "N/A" },
+                  { icon: Key, label: "Parking", val: flat.parking_slots ? `${flat.parking_slots} Slot(s)` : "None" },
+                  { icon: Key, label: "Balcony", val: flat.balconies ? `${flat.balconies} Balconies` : "None" },
                 ].map(({ icon: Icon, label, val }, i) => (
                   <div key={i} className="flex flex-col rounded-xl bg-slate-50 p-3">
                     <span className="text-slate-400 text-xs mb-1.5">
@@ -245,7 +252,7 @@ export default function NestedFlatDetailPage({
                 <div className="flex justify-between items-center text-xs border-t border-slate-50 pt-2">
                   <span className="text-slate-500">Monthly Maintenance Fee</span>
                   <span className="font-bold text-slate-800">
-                    ₹{flat.maintenance_fee.toLocaleString("en-IN")}/mo
+                    ₹{(flat.maintenance_fee ?? 0).toLocaleString("en-IN")}/mo
                   </span>
                 </div>
               </div>

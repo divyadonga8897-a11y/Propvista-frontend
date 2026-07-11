@@ -32,7 +32,7 @@ export default function Navbar() {
     },
     {
       label: "Apartments",
-      href: "/apartment",
+      href: "/apartments",
       icon: Building2,
     },
     {

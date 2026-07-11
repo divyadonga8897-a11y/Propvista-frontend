@@ -1171,7 +1171,7 @@ export default function AdminDashboard() {
               <div className="flex gap-2">
                 <button
                   onClick={() => exportToCSV(adminPayments.map(p => ({
-                    OrderID: p.razorpay_order_id || 'sandbox',
+                    OrderID: p.razorpay_order_id || 'local',
                     PaymentID: p.razorpay_payment_id || '-',
                     Type: p.payment_type,
                     Amount: p.amount,
@@ -1184,7 +1184,7 @@ export default function AdminDashboard() {
                 </button>
                 <button
                   onClick={() => exportToExcel(adminPayments.map(p => ({
-                    OrderID: p.razorpay_order_id || 'sandbox',
+                    OrderID: p.razorpay_order_id || 'local',
                     PaymentID: p.razorpay_payment_id || '-',
                     Type: p.payment_type,
                     Amount: p.amount,
@@ -1198,7 +1198,7 @@ export default function AdminDashboard() {
                 <button
                   onClick={() => exportToPDF(
                     adminPayments.map(p => ({
-                      orderId: p.razorpay_order_id || 'sandbox',
+                      orderId: p.razorpay_order_id || 'local',
                       type: p.payment_type,
                       amount: p.amount,
                       status: p.status,
@@ -1249,7 +1249,7 @@ export default function AdminDashboard() {
                         <tr key={p.id} className="text-slate-800 hover:bg-slate-50/50">
                           <td className="p-4">
                             <code className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-mono">
-                              {p.razorpay_order_id || "sandbox"}
+                              {p.razorpay_order_id || "local"}
                             </code>
                           </td>
                           <td className="p-4">

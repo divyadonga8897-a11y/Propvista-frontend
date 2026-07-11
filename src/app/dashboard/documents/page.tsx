@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { api } from "@/utils/api";
+import { usePropVista } from "@/components/Providers";
+import apiClient from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { FileText, Eye, Printer, Send } from "lucide-react";
 import { toast } from "sonner";
 
 export default function MyLegalDocumentsPage() {
-  const { user } = useAuth();
+  const { user } = usePropVista();
   const [documents, setDocuments] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,12 +24,8 @@ export default function MyLegalDocumentsPage() {
 
   const fetchDocuments = async () => {
     try {
-      // Get bookings for the user to extract their documents
-      // Assuming a dedicated endpoint for user documents or parsing from bookings
-      const { data } = await api.get("/bookings/my");
-      // Flatten all documents from bookings
-      const docs = data.flatMap((booking: any) => booking.documents || []);
-      setDocuments(docs);
+      const { data } = await apiClient.get("/api/v1/documents");
+      setDocuments(data);
     } catch (error) {
       console.error("Failed to fetch documents", error);
     } finally {
@@ -39,7 +35,7 @@ export default function MyLegalDocumentsPage() {
 
   const fetchRequests = async () => {
     try {
-      const { data } = await api.get("/resident-access/me");
+      const { data } = await apiClient.get("/api/v1/resident-access/me");
       setRequests(data);
     } catch (error) {
       console.error("Failed to fetch requests", error);
@@ -48,7 +44,7 @@ export default function MyLegalDocumentsPage() {
 
   const handleRequestAccess = async (doc: any) => {
     try {
-      await api.post("/resident-access/", {
+      await apiClient.post("/api/v1/resident-access/", {
         booking_id: doc.booking_id,
         flat_id: doc.flat_id,
         document_id: doc.id
@@ -104,7 +100,7 @@ export default function MyLegalDocumentsPage() {
                     <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   {reqStatus && (
-                    <Badge variant={reqStatus === 'Approved' ? 'success' : reqStatus === 'Pending' ? 'warning' : 'destructive'}>
+                    <Badge variant={reqStatus === 'Approved' ? 'default' : reqStatus === 'Pending' ? 'secondary' : 'destructive'}>
                       Access: {reqStatus}
                     </Badge>
                   )}

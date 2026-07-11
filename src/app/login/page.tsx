@@ -43,14 +43,22 @@ export default function LoginPage() {
         return;
       }
 
-      const role =
-        (
-          session.user.user_metadata?.role ||
-          session.user.app_metadata?.role ||
-          "customer"
-        )
-          .toString()
-          .toLowerCase();
+      let role = "customer";
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002"}/api/v1/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          }
+        });
+        if (response.ok) {
+          const profile = await response.json();
+          if (profile.role) {
+            role = profile.role.toLowerCase();
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check session role:", err);
+      }
 
       switch (role) {
         case "admin":
@@ -114,10 +122,22 @@ export default function LoginPage() {
     let actualRole = "customer";
     const userEmail = data.user.email?.toLowerCase() ?? "";
 
-    if (session?.user?.user_metadata?.role) {
-      actualRole = String(session.user.user_metadata.role).toLowerCase();
-    } else if (session?.user?.app_metadata?.role) {
-      actualRole = String(session.user.app_metadata.role).toLowerCase();
+    if (session?.access_token) {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002"}/api/v1/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          }
+        });
+        if (response.ok) {
+          const profile = await response.json();
+          if (profile.role) {
+            actualRole = profile.role.toLowerCase();
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch database role during login:", err);
+      }
     }
 
     if (actualRole === "customer") {

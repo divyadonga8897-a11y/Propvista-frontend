@@ -6,24 +6,43 @@ import { apiService } from "@/services/apiService";
 import Link from "next/link";
 import {
   CheckCircle, Download, LayoutDashboard, FileText, Loader2,
-  Clock, ShieldCheck, Building2, Home, Layers, CreditCard
+  Clock, ShieldCheck, Building2, Home, Layers
 } from "lucide-react";
 import Footer from "@/components/Footer";
+import { supabase } from "@/lib/supabase";
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
   const paymentId = searchParams.get("paymentId");
+
+  // Flat context passed from booking page (local payment flow)
+  const aptName = searchParams.get("aptName");
+  const flatNumber = searchParams.get("flatNumber");
+  const floorName = searchParams.get("floorName");
+  const bookingType = searchParams.get("bookingType");
+  const amount = searchParams.get("amount");
+
+  const isLocalPayment = bookingId?.startsWith("BK-");
+
   const [booking, setBooking] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isLocalPayment);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!bookingId) {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.access_token) {
+        setToken(session.access_token);
+      }
+    });
+
+    // For locally-generated booking IDs (like BK-... which was old mock flow), skip backend fetch
+    // Real bookingId is a UUID
+    if (isLocalPayment || !bookingId) {
       setLoading(false);
       return;
     }
-    // Poll briefly to let backend finish generating documents
     const fetchData = async () => {
       try {
         const [bk, docs] = await Promise.all([
@@ -31,7 +50,6 @@ export default function PaymentSuccessPage() {
           apiService.getDocuments().catch(() => []),
         ]);
         setBooking(bk);
-        // Filter documents for this booking
         setDocuments((docs || []).filter((d: any) => d.booking_id === bookingId));
       } catch (err) {
         console.error(err);
@@ -39,10 +57,14 @@ export default function PaymentSuccessPage() {
         setLoading(false);
       }
     };
-    // Small delay to allow async PDF generation to complete on backend
     const t = setTimeout(fetchData, 2000);
     return () => clearTimeout(t);
-  }, [bookingId]);
+  }, [bookingId, isLocalPayment]);
+
+  const getApiUrl = (path: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+    return `${baseUrl}${path}`;
+  };
 
   if (loading) {
     return (
@@ -71,29 +93,29 @@ export default function PaymentSuccessPage() {
           </div>
 
           {/* Property Details */}
-          {booking && (
+          {(aptName || booking) && (
             <div className="bg-slate-50 rounded-2xl p-4 space-y-2">
               <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">Property Booked</p>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="bg-white rounded-xl p-2.5 border border-slate-100">
                   <Building2 className="h-4 w-4 text-blue-500 mx-auto mb-1" />
                   <p className="text-[9px] text-slate-400 uppercase font-semibold">Apartment</p>
-                  <p className="font-bold text-slate-800 truncate">{booking.flat?.apartment_name || "—"}</p>
+                  <p className="font-bold text-slate-800 truncate">{aptName || booking?.flat?.apartment_name || "—"}</p>
                 </div>
                 <div className="bg-white rounded-xl p-2.5 border border-slate-100">
                   <Layers className="h-4 w-4 text-purple-500 mx-auto mb-1" />
                   <p className="text-[9px] text-slate-400 uppercase font-semibold">Floor</p>
-                  <p className="font-bold text-slate-800">{booking.flat?.floor_name || "—"}</p>
+                  <p className="font-bold text-slate-800">{floorName || booking?.flat?.floor_name || "—"}</p>
                 </div>
                 <div className="bg-white rounded-xl p-2.5 border border-slate-100">
                   <Home className="h-4 w-4 text-emerald-500 mx-auto mb-1" />
                   <p className="text-[9px] text-slate-400 uppercase font-semibold">Flat</p>
-                  <p className="font-bold text-slate-800">{booking.flat?.flat_number || "—"}</p>
+                  <p className="font-bold text-slate-800">{flatNumber || booking?.flat?.flat_number || "—"}</p>
                 </div>
               </div>
               <div className="flex justify-between text-xs mt-2 pt-2 border-t border-slate-100">
                 <span className="text-slate-500 font-medium">Booking ID</span>
-                <span className="font-mono font-bold text-slate-700 text-[10px]">{bookingId?.substring(0, 16)}...</span>
+                <span className="font-mono font-bold text-slate-700 text-[10px]">{bookingId?.substring(0, 18)}...</span>
               </div>
               {paymentId && (
                 <div className="flex justify-between text-xs">
@@ -101,10 +123,18 @@ export default function PaymentSuccessPage() {
                   <span className="font-mono font-bold text-slate-700 text-[10px]">{paymentId}</span>
                 </div>
               )}
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-500 font-medium">Type</span>
-                <span className="font-bold text-slate-700">{booking.booking_type}</span>
-              </div>
+              {(bookingType || booking?.booking_type) && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Type</span>
+                  <span className="font-bold text-slate-700">{bookingType || booking?.booking_type}</span>
+                </div>
+              )}
+              {amount && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Amount Paid</span>
+                  <span className="font-bold text-emerald-700">₹{Number(amount).toLocaleString()}</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -127,9 +157,9 @@ export default function PaymentSuccessPage() {
                     <FileText className="h-4 w-4 text-blue-500 shrink-0" />
                     <span className="font-semibold text-slate-700">{doc.name}</span>
                   </div>
-                  {doc.file_url && (
+                  {doc.id && (
                     <a
-                      href={doc.file_url}
+                      href={getApiUrl(`/api/v1/documents/${doc.id}/download?token=${token}`)}
                       target="_blank"
                       rel="noreferrer"
                       className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 transition-colors"

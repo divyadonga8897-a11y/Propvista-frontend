@@ -82,6 +82,30 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   // ── Supabase Auth listener ────────────────────────────────
   useEffect(() => {
+    const fetchDbRole = async (sess: any) => {
+      if (!sess?.access_token) {
+        setRole("Customer");
+        return;
+      }
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002"}/api/v1/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${sess.access_token}`
+          }
+        });
+        if (response.ok) {
+          const profile = await response.json();
+          if (profile.role) {
+            setRole(profile.role);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch database role in Providers:", err);
+      }
+      setRole(extractRole(sess?.user ?? null));
+    };
+
     supabase.auth.getSession()
       .then(({ data: { session }, error }) => {
         if (error) {
@@ -89,7 +113,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         }
         setSession(session);
         setUser(session?.user ?? null);
-        setRole(extractRole(session?.user ?? null));
+        fetchDbRole(session);
       })
       .catch((err) => {
         console.error("Session fetch error:", err);
@@ -101,7 +125,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setRole(extractRole(session?.user ?? null));
+      fetchDbRole(session);
       setAuthLoading(false);
     });
 

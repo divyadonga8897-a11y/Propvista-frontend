@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { apiService } from "@/services/apiService";
+import { supabase } from "@/lib/supabase";
 import {
   ShieldCheck, Search, CheckCircle, XCircle, FileText,
-  AlertCircle, Clock, Download, Building2, Home, Layers, User, Mail, Phone, Loader2
+  AlertCircle, Clock, Download, Building2, Home, Layers, User, Mail, Loader2, DollarSign, Eye
 } from "lucide-react";
 
 export default function AdminApprovals() {
@@ -14,11 +15,12 @@ export default function AdminApprovals() {
   const [activeTab, setActiveTab] = useState("Pending");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [remarksMap, setRemarksMap] = useState<Record<string, string>>({});
+  const [token, setToken] = useState<string | null>(null);
 
   const loadApprovals = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await apiService.getResidentAccessRequests();
+      const data = await apiService.getAllResidentAccessRequests();
       setApprovals(data);
     } catch (err) {
       console.error("Failed to load approvals:", err);
@@ -28,8 +30,18 @@ export default function AdminApprovals() {
   }, []);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.access_token) {
+        setToken(session.access_token);
+      }
+    });
     loadApprovals();
   }, [loadApprovals]);
+
+  const getApiUrl = (path: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+    return `${baseUrl}${path}`;
+  };
 
   const filteredApprovals = approvals.filter(a =>
     (a.status === activeTab || activeTab === "All") &&
@@ -164,18 +176,17 @@ export default function AdminApprovals() {
             {filteredApprovals.map((req) => {
               const isProcessing = actionLoadingId === req.id;
               const isPending = req.status === "Pending";
-              const docUrl = req.document?.file_url || null;
 
               return (
-                <div key={req.id} className="p-5 hover:bg-slate-50/60 transition-colors">
-                  <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div key={req.id} className="p-5 hover:bg-slate-50/60 transition-colors animate-fade-in">
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
                     {/* Avatar */}
                     <div className="h-12 w-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0">
                       <ShieldCheck className="h-6 w-6" />
                     </div>
 
                     {/* Customer & Property Info */}
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                       {/* Customer */}
                       <div className="space-y-1">
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Customer</p>
@@ -202,13 +213,28 @@ export default function AdminApprovals() {
                         </div>
                       </div>
 
+                      {/* Payment Details */}
+                      <div className="space-y-1">
+                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Payment Details</p>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                          <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                          ₹{req.booking?.amount_paid?.toLocaleString("en-IN") || "0"} Paid
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          Ref: {req.booking?.payments?.[0]?.razorpay_payment_id || "Local Payment"}
+                        </div>
+                        <div className="text-[9px] text-slate-400 uppercase font-bold">
+                          {req.booking?.payments?.[0]?.payment_type || "Advance Booking"}
+                        </div>
+                      </div>
+
                       {/* Booking & Status */}
                       <div className="space-y-2">
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status & Date</p>
                         <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          req.status === "Approved" ? "bg-emerald-100 text-emerald-700"
-                          : req.status === "Rejected" ? "bg-red-100 text-red-700"
-                          : "bg-orange-100 text-orange-700"
+                          req.status === "Approved" ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                          : req.status === "Rejected" ? "bg-red-100 text-red-700 border border-red-200"
+                          : "bg-orange-100 text-orange-700 border border-orange-200"
                         }`}>
                           {req.status}
                         </span>
@@ -220,19 +246,29 @@ export default function AdminApprovals() {
                   </div>
 
                   {/* Agreement + Remarks + Actions */}
-                  <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 border-t border-slate-50 pt-4">
                     {/* Agreement Link */}
-                    {docUrl ? (
-                      <a
-                        href={docUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        View Agreement PDF
-                        <Download className="h-3 w-3 ml-0.5" />
-                      </a>
+                    {req.document?.id ? (
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={getApiUrl(`/api/v1/documents/${req.document.id}/view?token=${token}`)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View Agreement PDF
+                        </a>
+                        <a
+                          href={getApiUrl(`/api/v1/documents/${req.document.id}/download?token=${token}`)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download PDF
+                        </a>
+                      </div>
                     ) : (
                       <span className="text-xs text-slate-400 italic px-3 py-2">No document attached</span>
                     )}
@@ -242,7 +278,7 @@ export default function AdminApprovals() {
                         {/* Remarks Input */}
                         <input
                           type="text"
-                          placeholder="Add remarks (optional)..."
+                          placeholder="Add reason/remarks (optional for approval, required for rejection)..."
                           value={remarksMap[req.id] || ""}
                           onChange={(e) => setRemarksMap(prev => ({ ...prev, [req.id]: e.target.value }))}
                           className="flex-1 text-xs border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-400"
@@ -259,7 +295,13 @@ export default function AdminApprovals() {
                             Approve
                           </button>
                           <button
-                            onClick={() => handleReject(req.id)}
+                            onClick={() => {
+                              if (!remarksMap[req.id]) {
+                                alert("Rejection remarks/reason is required.");
+                                return;
+                              }
+                              handleReject(req.id);
+                            }}
                             disabled={isProcessing}
                             className="px-3 py-2 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-colors flex items-center gap-1.5 disabled:opacity-50"
                           >
@@ -271,7 +313,7 @@ export default function AdminApprovals() {
                     )}
 
                     {!isPending && req.remarks && (
-                      <p className="text-xs text-slate-500 italic ml-1">Remarks: {req.remarks}</p>
+                      <p className="text-xs text-slate-500 italic ml-1 bg-slate-100 px-3 py-1.5 rounded-lg">Remarks: {req.remarks}</p>
                     )}
                   </div>
                 </div>

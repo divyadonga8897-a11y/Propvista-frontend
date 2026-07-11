@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useCallback } from "react";
+import { use, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiService } from "@/services/apiService";
 import { supabase } from "@/lib/supabase";
@@ -12,61 +12,9 @@ import {
 } from "lucide-react";
 import Footer from "@/components/Footer";
 
-// ── Razorpay window type augmentation ────────────────────────────────────────
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
-  }
-}
 
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  prefill?: { name?: string; email?: string; contact?: string };
-  notes?: Record<string, string>;
-  theme?: { color?: string };
-  handler: (response: RazorpaySuccessResponse) => void;
-  modal?: {
-    ondismiss?: () => void;
-  };
-}
 
-interface RazorpaySuccessResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
 
-interface RazorpayInstance {
-  open(): void;
-  on(event: string, handler: () => void): void;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if ((window as any).Razorpay) return resolve(true);
-
-    const existing = document.querySelector(
-      'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
-    );
-    if (existing) {
-      existing.addEventListener("load", () => resolve(true));
-      existing.addEventListener("error", () => resolve(false));
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.head.appendChild(script);
-  });
-}
 
 // ── Page Component ─────────────────────────────────────────────────────────────
 export default function BookingSummaryPage({ params }: { params: Promise<{ flatId: string }> }) {
@@ -80,9 +28,19 @@ export default function BookingSummaryPage({ params }: { params: Promise<{ flatI
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
+  const [apartment, setApartment] = useState<any>(null);
+
   useEffect(() => {
-    apiService.getFlatById(resolvedParams.flatId).then((data) => {
+    apiService.getFlatById(resolvedParams.flatId).then(async (data) => {
       setFlat(data);
+      if (data.apartment_id) {
+        try {
+          const apt = await apiService.getApartmentById(data.apartment_id);
+          setApartment(apt);
+        } catch (e) {
+          console.error("Failed to load apartment details:", e);
+        }
+      }
       setLoading(false);
     }).catch(err => {
       console.error(err);
@@ -119,90 +77,43 @@ export default function BookingSummaryPage({ params }: { params: Promise<{ flatI
     setPaying(true);
 
     try {
-      // 1. Get session / user info
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setPayError("Your session has expired. Please log in again.");
-        setPaying(false);
-        return;
-      }
-
-      const userName = session.user?.user_metadata?.full_name
-        || session.user?.email?.split("@")[0]
-        || "Customer";
-      const userEmail = session.user?.email || "";
-      const userPhone = session.user?.user_metadata?.phone || "";
-
-      // 2. Load Razorpay SDK
-      const loaded = await loadRazorpayScript();
-      if (!loaded) {
-        setPayError("Failed to load payment gateway. Please check your internet connection.");
-        setPaying(false);
-        return;
-      }
-
-      // 3. Create booking on backend
+      // 1. Create a real booking in the backend
       const booking = await apiService.createBooking(flat.id, bookingType as "BUY" | "RENT");
+      if (!booking || !booking.id) {
+        throw new Error("Unable to create booking on the server.");
+      }
 
-      // 4. Create Razorpay order on backend
-      const order = await apiService.createPaymentOrder(
+      // 2. Complete payment locally on the backend
+      const paymentResult = await apiService.completePaymentLocal(
         booking.id,
-        totalAmount,
-        bookingType === "BUY" ? "Advance Booking" : "Rental Security Deposit"
+        Math.round(totalAmount),
+        bookingType === "BUY" ? "Purchase Booking" : "Rental Booking"
       );
 
-      // 5. Open Razorpay Checkout popup
-      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || order.razorpay_key_id;
+      if (!paymentResult || paymentResult.status !== "success") {
+        throw new Error("Payment completion failed on the server.");
+      }
 
-      const options: RazorpayOptions = {
-        key: razorpayKey,
-        amount: Math.round(totalAmount * 100), // paise
-        currency: order.currency || "INR",
-        name: "PropVista AI",
-        description: `${bookingType === "BUY" ? "Property Purchase" : "Rental Deposit"} — Flat ${flat.flat_number}`,
-        order_id: order.order_id,
-        prefill: { name: userName, email: userEmail, contact: userPhone },
-        notes: {
-          booking_id: booking.id,
-          flat_number: flat.flat_number,
-          booking_type: bookingType,
-        },
-        theme: { color: "#1e40af" },
-        handler: async (response: RazorpaySuccessResponse) => {
-          try {
-            // 6. Verify payment signature on backend
-            await apiService.verifyPayment(
-              response.razorpay_order_id,
-              response.razorpay_payment_id,
-              response.razorpay_signature
-            );
-            // 7. Redirect to success page
-            router.push(`/payment/success?bookingId=${booking.id}&paymentId=${response.razorpay_payment_id}`);
-          } catch (verifyErr: any) {
-            const msg = verifyErr?.response?.data?.detail || verifyErr?.message || "Payment verification failed.";
-            setPayError(msg);
-            setPaying(false);
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setPayError("Payment was cancelled. Your booking has not been confirmed.");
-            setPaying(false);
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", () => {
-        setPayError("Payment failed. Please try again or use a different payment method.");
-        setPaying(false);
+      // Pass flat context in URL so success page can display property details
+      const params = new URLSearchParams({
+        bookingId: booking.id,
+        paymentId: paymentResult.payment_id,
+        flatNumber: flat.flat_number || "",
+        aptName: flat.apartment_name || "",
+        floorName: flat.floor_name || String(flat.floor_number || ""),
+        bookingType,
+        amount: String(Math.round(totalAmount)),
       });
-      rzp.open();
+
+      router.push(`/payment/success?${params.toString()}`);
 
     } catch (err: any) {
-      console.error("Payment initiation error:", err);
-      const msg = err?.response?.data?.detail || err?.message || "Could not initiate payment. Please try again.";
-      setPayError(msg);
+      console.error("Payment error:", err);
+      // Display the friendly requirement error message
+      setPayError(
+        err.response?.data?.detail || 
+        "Unable to generate your booking documents. Please contact the administrator."
+      );
       setPaying(false);
     }
   };
@@ -288,7 +199,7 @@ export default function BookingSummaryPage({ params }: { params: Promise<{ flatI
               <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
               <div className="text-xs text-emerald-800 space-y-0.5">
                 <p className="font-bold">Secure &amp; Safe Transaction</p>
-                <p className="text-emerald-700 opacity-80">256-bit SSL encrypted. Powered by Razorpay. Legal agreement auto-generated upon payment. Admin approval required for resident access.</p>
+                <p className="text-emerald-700 opacity-80">256-bit SSL encrypted. Legal agreement auto-generated upon payment. Admin approval required for resident access.</p>
               </div>
             </div>
           </div>
@@ -343,7 +254,7 @@ export default function BookingSummaryPage({ params }: { params: Promise<{ flatI
 
             <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400">
               <CheckCircle className="h-3 w-3 text-emerald-500" />
-              <span>Secured by Razorpay · Test Mode</span>
+              <span>Secured by Razorpay · SSL Encrypted</span>
             </div>
           </div>
         </div>

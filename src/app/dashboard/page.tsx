@@ -5,22 +5,30 @@ import { usePropVista } from "@/components/Providers";
 import { useState, useEffect } from "react";
 import { apiService } from "@/services/apiService";
 import Link from "next/link";
-import { Building, Heart, ShieldAlert, ArrowRight, Clock, FileText, CheckCircle } from "lucide-react";
+import { Building, ArrowRight, Clock, XCircle } from "lucide-react";
 
 export default function CustomerDashboard() {
   const { wishlist, compareList } = usePropVista();
   const [bookings, setBookings] = useState<any[]>([]);
+  const [accessRequests, setAccessRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiService.getBookingHistory().then((data) => {
-      setBookings(data);
+    Promise.all([
+      apiService.getBookingHistory(),
+      apiService.getMyResidentAccessRequests().catch(() => [])
+    ]).then(([bData, aData]) => {
+      setBookings(bData);
+      setAccessRequests(aData);
     }).catch(err => {
       console.error(err);
     }).finally(() => {
       setLoading(false);
     });
   }, []);
+
+  const hasPendingApproval = accessRequests.some(r => r.status === "Pending");
+  const rejectedRequests = accessRequests.filter(r => r.status === "Rejected");
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -42,6 +50,37 @@ export default function CustomerDashboard() {
       <main className="flex-grow p-8">
         <h1 className="text-2xl font-black text-brand-dark mb-2">Customer Hub</h1>
         <p className="text-xs text-brand-gray mb-8">Review your booking requests, active bids, and property stats.</p>
+
+        {/* Approval Pending Status Banner */}
+        {hasPendingApproval && (
+          <div className="mb-6 rounded-2xl bg-amber-50 border border-amber-200 p-4 flex items-start gap-3 shadow-sm animate-pulse">
+            <Clock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-bold text-amber-800">Approval Pending</h4>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Your Resident Access Request is awaiting Admin review. Once approved, you will gain full access to the resident dashboard.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Request Rejected Banner */}
+        {rejectedRequests.map((req) => (
+          <div key={req.id} className="mb-6 rounded-2xl bg-red-50 border border-red-200 p-4 flex items-start gap-3 shadow-sm">
+            <XCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-bold text-red-800">Request Rejected</h4>
+              <p className="text-xs text-red-700 mt-0.5">
+                Your resident access request was rejected by the administrator.
+              </p>
+              {req.remarks && (
+                <p className="text-xs text-red-800 font-semibold mt-1.5 bg-red-100/50 p-2 rounded-lg border border-red-200/50">
+                  Reason: {req.remarks}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
 
         {/* Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">

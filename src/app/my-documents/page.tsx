@@ -3,14 +3,24 @@
 import Sidebar from "@/components/Sidebar";
 import { useState, useEffect } from "react";
 import { apiService } from "@/services/apiService";
-import { FileText, Download, Shield } from "lucide-react";
+import { FileText, Download, Eye } from "lucide-react";
 import Footer from "@/components/Footer";
+import { supabase } from "@/lib/supabase";
 
 export default function MyDocumentsPage() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
+    // 1. Fetch user token
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.access_token) {
+        setToken(session.access_token);
+      }
+    });
+
+    // 2. Load user documents
     apiService.getDocuments().then((data) => {
       setDocuments(data);
       setLoading(false);
@@ -19,6 +29,22 @@ export default function MyDocumentsPage() {
       setLoading(false);
     });
   }, []);
+
+  const getApiUrl = (path: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+    return `${baseUrl}${path}`;
+  };
+
+  const getStatusColor = (status: string) => {
+    const s = (status || "").toLowerCase();
+    if (s === "completed" || s === "success" || s === "sold" || s === "rented") {
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    }
+    if (s === "pending" || s === "held") {
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    }
+    return "bg-slate-50 text-slate-700 border-slate-200";
+  };
 
   return (
     <div className="flex-grow flex bg-slate-50 min-h-screen">
@@ -46,10 +72,15 @@ export default function MyDocumentsPage() {
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                    <th className="p-4">Document Details</th>
-                    <th className="p-4">Category Type</th>
-                    <th className="p-4">Issued On</th>
-                    <th className="p-4 text-right">Download</th>
+                    <th className="p-4">Document Type</th>
+                    <th className="p-4">Booking ID</th>
+                    <th className="p-4">Apartment</th>
+                    <th className="p-4">Floor</th>
+                    <th className="p-4">Flat Number</th>
+                    <th className="p-4">Booking Type</th>
+                    <th className="p-4">Created Date</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -61,23 +92,50 @@ export default function MyDocumentsPage() {
                           <span className="font-extrabold">{doc.name}</span>
                         </div>
                       </td>
+                      <td className="p-4 font-mono text-[10px] text-slate-500">
+                        {doc.booking_id ? `${doc.booking_id.substring(0, 8)}...` : "N/A"}
+                      </td>
+                      <td className="p-4 text-slate-700 font-semibold">
+                        {doc.apartment_name || "N/A"}
+                      </td>
+                      <td className="p-4 text-slate-500 font-medium">
+                        {doc.floor_name || "N/A"}
+                      </td>
+                      <td className="p-4 text-slate-700 font-bold">
+                        {doc.flat_number || "N/A"}
+                      </td>
                       <td className="p-4">
                         <span className="font-bold text-[10px] text-slate-500 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded">
-                          {doc.doc_type}
+                          {doc.booking_type || "N/A"}
                         </span>
                       </td>
                       <td className="p-4 text-slate-500 font-medium">
                         {new Date(doc.created_at).toLocaleDateString()}
                       </td>
-                      <td className="p-4 text-right">
-                        <a
-                          href={doc.file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-blue hover:underline"
-                        >
-                          <Download className="h-3.5 w-3.5" /> View Outlay
-                        </a>
+                      <td className="p-4">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getStatusColor(doc.status)}`}>
+                          {doc.status || "Completed"}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-3">
+                          <a
+                            href={getApiUrl(`/api/v1/documents/${doc.id}/view?token=${token}`)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-blue hover:underline"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> View
+                          </a>
+                          <a
+                            href={getApiUrl(`/api/v1/documents/${doc.id}/download?token=${token}`)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-blue hover:underline"
+                          >
+                            <Download className="h-3.5 w-3.5" /> Download PDF
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   ))}
