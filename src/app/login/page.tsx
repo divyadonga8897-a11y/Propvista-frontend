@@ -207,6 +207,9 @@ export default function LoginPage() {
             <div className="text-center">
               <h1 className="text-3xl font-black text-white">PropVista AI</h1>
               <p className="text-sm text-slate-400">Real Estate & Society Platform</p>
+              <p className="mt-4 text-[11px] font-medium text-slate-200 max-w-md mx-auto leading-relaxed border border-blue-500/25 bg-blue-500/5 rounded-2xl px-4 py-3 shadow-md">
+                ✨ <strong>Welcome to PropVista AI!</strong> Login as a <span className="text-blue-400 font-bold">Customer</span> to view, rent, or purchase apartments. Buying or renting automatically unlocks the <span className="text-emerald-400 font-bold">Resident Community Portal</span> to manage bills and report issues.
+              </p>
             </div>
           </Link>
         </div>
@@ -337,26 +340,6 @@ export default function LoginPage() {
               </Link>
             </div>
           )}
-
-          <div className="mt-8 rounded-xl border border-slate-800 bg-slate-950 p-4">
-            <h3 className="mb-3 text-center text-sm font-semibold text-slate-300">
-              Development Accounts
-            </h3>
-            <div className="space-y-2 text-xs text-slate-400">
-              <div className="flex justify-between rounded-lg bg-slate-900 px-3 py-2">
-                <span>Admin</span>
-                <span>admin@propvista.com</span>
-              </div>
-              <div className="flex justify-between rounded-lg bg-slate-900 px-3 py-2">
-                <span>Resident</span>
-                <span>resident@propvista.com</span>
-              </div>
-              <div className="flex justify-between rounded-lg bg-slate-900 px-3 py-2">
-                <span>Customer</span>
-                <span>user@propvista.com</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

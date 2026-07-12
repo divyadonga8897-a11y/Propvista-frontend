@@ -1,15 +1,47 @@
 "use client";
 
 import Footer from "@/components/Footer";
-import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, subject, message }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSubmitted(true);
+        setName("");
+        setEmail("");
+        setSubject("");
+        setMessage("");
+      } else {
+        toast.error(data.error || "Failed to send email. Please try again.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred while sending. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -31,7 +63,7 @@ export default function Contact() {
               </div>
               <div>
                 <h3 className="text-xs font-bold text-slate-900">Email Us</h3>
-                <p className="mt-1 text-xs text-brand-gray font-medium">support@propvista-ai.com</p>
+                <p className="mt-1 text-xs text-brand-gray font-medium">divyadonga8897@gmail.com</p>
               </div>
             </div>
 
@@ -80,6 +112,8 @@ export default function Contact() {
                     <input
                       type="text"
                       required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 py-2.5 px-3.5 text-xs text-slate-900 focus:outline-none focus:border-brand-blue"
                       placeholder="e.g. Divya Kumar"
                     />
@@ -89,6 +123,8 @@ export default function Contact() {
                     <input
                       type="email"
                       required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 py-2.5 px-3.5 text-xs text-slate-900 focus:outline-none focus:border-brand-blue"
                       placeholder="e.g. divya@propvista.com"
                     />
@@ -100,6 +136,8 @@ export default function Contact() {
                   <input
                     type="text"
                     required
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 py-2.5 px-3.5 text-xs text-slate-900 focus:outline-none focus:border-brand-blue"
                     placeholder="e.g. Query regarding maintenance bills or unit A-202 hold status"
                   />
@@ -110,6 +148,8 @@ export default function Contact() {
                   <textarea
                     rows={4}
                     required
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 py-2.5 px-3.5 text-xs text-slate-900 focus:outline-none focus:border-brand-blue"
                     placeholder="Type details of your request here..."
                   />
@@ -117,10 +157,20 @@ export default function Contact() {
 
                 <button
                   type="submit"
-                  className="flex items-center gap-2 rounded-lg bg-brand-blue hover:bg-brand-blue-hover px-5 py-2.5 text-xs font-bold text-white transition-colors"
+                  disabled={loading}
+                  className="flex items-center gap-2 rounded-lg bg-brand-blue hover:bg-brand-blue-hover px-5 py-2.5 text-xs font-bold text-white transition-colors disabled:opacity-50"
                 >
-                  Send Message
-                  <Send className="h-4 w-4" />
+                  {loading ? (
+                    <>
+                      Sending...
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </>
+                  ) : (
+                    <>
+                      Send Message
+                      <Send className="h-4 w-4" />
+                    </>
+                  )}
                 </button>
               </form>
             )}

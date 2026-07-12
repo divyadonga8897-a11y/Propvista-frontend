@@ -38,8 +38,8 @@ export default function AiChatWidget({ role = "customer" }: AiChatWidgetProps) {
         role === "resident"
           ? "Hi! I'm your PropVista Resident AI. I can check your maintenance dues, rent status, complaints, community rules, announcements, and more. What would you like to know?"
           : role === "admin"
-          ? "Hello Admin! I can pull real-time analytics — total flats, revenue, complaint categories, occupancy rates, and more. What report do you need?"
-          : "Welcome to PropVista AI! 🏠 I can help you discover apartments, find available flats by budget, type, or facing direction. Ask me anything!",
+            ? "Hello Admin! I can pull real-time analytics — total flats, revenue, complaint categories, occupancy rates, and more. What report do you need?"
+            : "Welcome to PropVista AI! 🏠 I can help you discover apartments, find available flats by budget, type, or facing direction. Ask me anything!",
       timestamp: new Date(),
     },
   ]);
@@ -60,7 +60,7 @@ export default function AiChatWidget({ role = "customer" }: AiChatWidgetProps) {
 
     try {
       const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
-      
+
       let res;
       if (role === "resident") {
         res = await apiService.aiResidentChat(history);
@@ -109,9 +109,8 @@ export default function AiChatWidget({ role = "customer" }: AiChatWidgetProps) {
       {/* Chat Panel */}
       {open && (
         <div
-          className={`fixed z-50 right-4 bottom-4 shadow-2xl rounded-3xl flex flex-col border border-slate-200/60 overflow-hidden transition-all duration-300 ${
-            expanded ? "w-[600px] h-[80vh]" : "w-[370px] h-[540px]"
-          }`}
+          className={`fixed z-50 right-4 bottom-4 shadow-2xl rounded-3xl flex flex-col border border-slate-200/60 overflow-hidden transition-all duration-300 ${expanded ? "w-[600px] h-[80vh]" : "w-[370px] h-[540px]"
+            }`}
           style={{ background: "linear-gradient(145deg, #0f172a 0%, #1e1b4b 100%)" }}
         >
           {/* Header */}
@@ -121,10 +120,10 @@ export default function AiChatWidget({ role = "customer" }: AiChatWidgetProps) {
                 <BrainCircuit className="h-4 w-4 text-white" />
               </div>
               <div>
-                <p className="text-xs font-bold text-white">PropVista AI</p>
+                <p className="text-xs font-bold text-white">PropVista-AI</p>
                 <p className="text-[9px] text-indigo-300 flex items-center gap-1">
                   <span className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse inline-block" />
-                  Powered by Groq · LLaMA 3.3
+                  Online
                 </p>
               </div>
             </div>
@@ -156,11 +155,10 @@ export default function AiChatWidget({ role = "customer" }: AiChatWidgetProps) {
                   </div>
                 )}
                 <div
-                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
-                    msg.role === "user"
+                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${msg.role === "user"
                       ? "bg-indigo-600 text-white rounded-br-none"
                       : "bg-white/10 text-slate-200 rounded-bl-none border border-white/10 backdrop-blur-sm"
-                  }`}
+                    }`}
                 >
                   {msg.role === "assistant" ? (
                     <div className="prose prose-invert prose-xs max-w-none">

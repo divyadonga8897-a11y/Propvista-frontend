@@ -74,7 +74,7 @@ export default function AdminAiPanel() {
             <p className="text-xs font-bold text-white">Admin AI Analytics</p>
             <p className="text-[9px] text-indigo-300 flex items-center gap-1">
               <span className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse inline-block" />
-              Groq · LLaMA 3.3-70B · Live Data
+              Live Data Assistant
             </p>
           </div>
         </div>

@@ -98,7 +98,7 @@ export default function ResidentAiChatPage() {
               <h1 className="text-sm font-black text-white">Resident AI Assistant</h1>
               <p className="text-[10px] text-indigo-300 flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse inline-block" />
-                Powered by Groq · LLaMA 3.3-70B · Live Database
+                Live Database Assistant
               </p>
             </div>
           </div>
