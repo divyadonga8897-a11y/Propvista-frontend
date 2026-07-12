@@ -281,6 +281,11 @@ export const apiService = {
     return data;
   },
 
+  createResidentAccessRequest: async (body: { booking_id: string; flat_id: string; document_id?: string }): Promise<any> => {
+    const { data } = await apiClient.post("/api/v1/resident-access/", body);
+    return data;
+  },
+
   getCurrentUser: async (): Promise<any> => {
     const { data } = await apiClient.get("/api/v1/auth/me");
     return data;

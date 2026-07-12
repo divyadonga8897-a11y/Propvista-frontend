@@ -45,7 +45,7 @@ export default function LoginPage() {
 
       let role = "customer";
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002"}/api/v1/auth/me`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8008"}/api/v1/auth/me`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`
           }
@@ -124,7 +124,7 @@ export default function LoginPage() {
 
     if (session?.access_token) {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002"}/api/v1/auth/me`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8008"}/api/v1/auth/me`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`
           }

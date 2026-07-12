@@ -82,54 +82,55 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   // ── Supabase Auth listener ────────────────────────────────
   useEffect(() => {
+    let active = true;
+    
     const fetchDbRole = async (sess: any) => {
       if (!sess?.access_token) {
         setRole("Customer");
         return;
       }
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002"}/api/v1/auth/me`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8008"}/api/v1/auth/me`, {
           headers: {
             Authorization: `Bearer ${sess.access_token}`
           }
         });
-        if (response.ok) {
+        if (response.ok && active) {
           const profile = await response.json();
           if (profile.role) {
-            setRole(profile.role);
+            const rawRole = profile.role.toLowerCase();
+            let normalizedRole: UserRole = "Customer";
+            if (rawRole === "admin") {
+              normalizedRole = "Admin";
+            } else if (rawRole === "resident") {
+              normalizedRole = "Resident";
+            }
+            setRole(normalizedRole);
             return;
           }
         }
       } catch (err) {
         console.error("Failed to fetch database role in Providers:", err);
       }
-      setRole(extractRole(sess?.user ?? null));
+      if (active) {
+        setRole(extractRole(sess?.user ?? null));
+      }
     };
 
-    supabase.auth.getSession()
-      .then(({ data: { session }, error }) => {
-        if (error) {
-          console.error("Supabase Auth Error:", error);
-        }
-        setSession(session);
-        setUser(session?.user ?? null);
-        fetchDbRole(session);
-      })
-      .catch((err) => {
-        console.error("Session fetch error:", err);
-      })
-      .finally(() => {
-        setAuthLoading(false);
-      });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Subscribing to auth state change will automatically trigger with the current session initial value,
+    // so we don't need a separate getSession() call which causes duplicate fetches.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!active) return;
       setSession(session);
       setUser(session?.user ?? null);
-      fetchDbRole(session);
+      await fetchDbRole(session);
       setAuthLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // ── localStorage hydration ────────────────────────────────

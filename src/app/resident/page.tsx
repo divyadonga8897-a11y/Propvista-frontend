@@ -93,21 +93,8 @@ export default function ResidentDashboard() {
     loadDashboardData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex bg-slate-50 min-h-screen">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-emerald-600"></div>
-            <p className="text-sm font-semibold text-slate-500">Loading Resident Dashboard...</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (error || !profile) {
+  // Render 'Residency Not Active' screen if loading has completed and no profile was found
+  if (!loading && (error || !profile)) {
     return (
       <div className="flex bg-slate-50 min-h-screen">
         <Sidebar />
@@ -134,110 +121,140 @@ export default function ResidentDashboard() {
       <Sidebar />
       <main className="flex-1 p-6 md:p-8 space-y-8 overflow-y-auto">
         {/* Profile Branding Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-6 rounded-3xl shadow-md">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-              <Home className="h-8 w-8 text-white" />
+        {profile ? (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-6 rounded-3xl shadow-md">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                <Home className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">{profile.apartment_name}</h1>
+                <p className="text-xs text-emerald-100 mt-1">
+                  Flat {profile.flat_number} • Floor {profile.floor_number} • Resident: {profile.resident_type}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold">{profile.apartment_name}</h1>
-              <p className="text-xs text-emerald-100 mt-1">
-                Flat {profile.flat_number} • Floor {profile.floor_number} • Resident: {profile.resident_type}
-              </p>
+            <div className="text-right">
+              <span className="inline-block rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white">
+                {profile.status} Member
+              </span>
+              <p className="text-[10px] text-emerald-100 mt-1.5">Joined: {profile.move_in_date || "N/A"}</p>
             </div>
           </div>
-          <div className="text-right">
-            <span className="inline-block rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white">
-              {profile.status} Member
-            </span>
-            <p className="text-[10px] text-emerald-100 mt-1.5">Joined: {profile.move_in_date || "N/A"}</p>
+        ) : (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-200 to-slate-300 p-6 rounded-3xl shadow-md animate-pulse">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-white/20" />
+              <div className="space-y-2">
+                <div className="h-5 w-48 bg-white/30 rounded" />
+                <div className="h-3 w-32 bg-white/30 rounded" />
+              </div>
+            </div>
+            <div className="text-right space-y-2">
+              <div className="h-5 w-24 bg-white/30 rounded ml-auto" />
+              <div className="h-3 w-16 bg-white/30 rounded ml-auto" />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Dashboard Cards Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-          {/* Card: Community Rating */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
-            <div className="p-2 w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
-              <Star className="h-4 w-4" />
-            </div>
-            <div className="mt-4 flex items-end justify-between">
-              <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rating</div>
-                <div className="text-lg font-black text-slate-800 mt-1">4.8/5</div>
-              </div>
-              <div className="text-[10px] font-medium text-emerald-500 mb-1">+0.2</div>
-            </div>
-          </div>
-
-          {/* Card 1: Maintenance Due */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
-            <div className="p-2 w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
-              <Wrench className="h-4 w-4" />
-            </div>
-            <div className="mt-4">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Maint. Due</div>
-              <div className="text-lg font-black text-slate-800 mt-1">₹{stats.maintenanceDue.toLocaleString()}</div>
-            </div>
-          </div>
-
-          {/* Card 2: Rent Due */}
-          {profile.resident_type === "Tenant" && (
+        {!loading && profile ? (
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+            {/* Card: Community Rating */}
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
-              <div className="p-2 w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
-                <DollarSign className="h-4 w-4" />
+              <div className="p-2 w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                <Star className="h-4 w-4" />
+              </div>
+              <div className="mt-4 flex items-end justify-between">
+                <div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rating</div>
+                  <div className="text-lg font-black text-slate-800 mt-1">4.8/5</div>
+                </div>
+                <div className="text-[10px] font-medium text-emerald-500 mb-1">+0.2</div>
+              </div>
+            </div>
+
+            {/* Card 1: Maintenance Due */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
+              <div className="p-2 w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <Wrench className="h-4 w-4" />
               </div>
               <div className="mt-4">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rent Due</div>
-                <div className="text-lg font-black text-slate-800 mt-1">₹{stats.rentDue.toLocaleString()}</div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Maint. Due</div>
+                <div className="text-lg font-black text-slate-800 mt-1">₹{stats.maintenanceDue.toLocaleString()}</div>
               </div>
             </div>
-          )}
 
-          {/* Card 3: Open Complaints */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
-            <div className="p-2 w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
-              <ClipboardList className="h-4 w-4" />
+            {/* Card 2: Rent Due */}
+            {profile.resident_type === "Tenant" && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
+                <div className="p-2 w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                  <DollarSign className="h-4 w-4" />
+                </div>
+                <div className="mt-4">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rent Due</div>
+                  <div className="text-lg font-black text-slate-800 mt-1">₹{stats.rentDue.toLocaleString()}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Card 3: Open Complaints */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
+              <div className="p-2 w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
+                <ClipboardList className="h-4 w-4" />
+              </div>
+              <div className="mt-4">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Complaints</div>
+                <div className="text-lg font-black text-slate-800 mt-1">{stats.openComplaints} Open</div>
+              </div>
             </div>
-            <div className="mt-4">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Complaints</div>
-              <div className="text-lg font-black text-slate-800 mt-1">{stats.openComplaints} Open</div>
+
+            {/* Card 4: Upcoming Visitors */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
+              <div className="p-2 w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                <Users className="h-4 w-4" />
+              </div>
+              <div className="mt-4">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Visitors</div>
+                <div className="text-lg font-black text-slate-800 mt-1">{stats.upcomingVisitors} Pending</div>
+              </div>
+            </div>
+
+            {/* Card 5: Booked Facilities */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
+              <div className="p-2 w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                <CalendarDays className="h-4 w-4" />
+              </div>
+              <div className="mt-4">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Facilities</div>
+                <div className="text-lg font-black text-slate-800 mt-1">{stats.bookedFacilities} Active</div>
+              </div>
+            </div>
+
+            {/* Card 6: Bulletins */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
+              <div className="p-2 w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+                <BellRing className="h-4 w-4" />
+              </div>
+              <div className="mt-4">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Announcements</div>
+                <div className="text-lg font-black text-slate-800 mt-1">{stats.unreadAnnouncements} Total</div>
+              </div>
             </div>
           </div>
-
-          {/* Card 4: Upcoming Visitors */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
-            <div className="p-2 w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
-              <Users className="h-4 w-4" />
-            </div>
-            <div className="mt-4">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Visitors</div>
-              <div className="text-lg font-black text-slate-800 mt-1">{stats.upcomingVisitors} Pending</div>
-            </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between animate-pulse min-h-[120px]">
+                <div className="w-8 h-8 rounded-lg bg-slate-200" />
+                <div className="space-y-2 mt-4">
+                  <div className="h-2 w-16 bg-slate-200 rounded" />
+                  <div className="h-4 w-12 bg-slate-300 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
-
-          {/* Card 5: Booked Facilities */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
-            <div className="p-2 w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
-              <CalendarDays className="h-4 w-4" />
-            </div>
-            <div className="mt-4">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Facilities</div>
-              <div className="text-lg font-black text-slate-800 mt-1">{stats.bookedFacilities} Active</div>
-            </div>
-          </div>
-
-          {/* Card 6: Bulletins */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
-            <div className="p-2 w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
-              <BellRing className="h-4 w-4" />
-            </div>
-            <div className="mt-4">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Announcements</div>
-              <div className="text-lg font-black text-slate-800 mt-1">{stats.unreadAnnouncements} Total</div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Dynamic Timeline Component */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -287,7 +304,17 @@ export default function ResidentDashboard() {
               </Link>
             </div>
 
-            {recentAnnouncements.length === 0 ? (
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-3.5 rounded-xl border border-slate-150 bg-slate-50/20 animate-pulse space-y-3">
+                    <div className="h-2 w-12 bg-slate-200 rounded" />
+                    <div className="h-3.5 w-48 bg-slate-300 rounded" />
+                    <div className="h-2 w-full bg-slate-200 rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : recentAnnouncements.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-6">No recent announcements found.</p>
             ) : (
               <div className="space-y-4">
@@ -315,7 +342,19 @@ export default function ResidentDashboard() {
               </Link>
             </div>
 
-            {recentComplaints.length === 0 ? (
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-3 border border-slate-150 rounded-xl bg-slate-50/20 animate-pulse flex items-center justify-between">
+                    <div className="space-y-2">
+                      <div className="h-3 w-32 bg-slate-300 rounded" />
+                      <div className="h-2 w-16 bg-slate-200 rounded" />
+                    </div>
+                    <div className="h-4 w-12 bg-slate-200 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : recentComplaints.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-6">No active support tickets logged.</p>
             ) : (
               <div className="space-y-3">

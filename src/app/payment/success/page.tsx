@@ -62,7 +62,7 @@ export default function PaymentSuccessPage() {
   }, [bookingId, isLocalPayment]);
 
   const getApiUrl = (path: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8008";
     return `${baseUrl}${path}`;
   };
 

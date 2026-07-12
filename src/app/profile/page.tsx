@@ -6,8 +6,16 @@ import { useState } from "react";
 import { usePropVista } from "@/components/Providers";
 
 export default function Profile() {
-  const { role } = usePropVista();
+  const { role, user } = usePropVista();
   const [saved, setSaved] = useState(false);
+
+  const fullName = user?.user_metadata?.full_name || user?.user_metadata?.name || "Divya Kumar";
+  const email = user?.email || "divya@propvista-ai.com";
+
+  const nameParts = fullName.split(" ");
+  const firstName = nameParts[0] || "";
+  const lastName = nameParts.slice(1).join(" ") || "";
+  const initials = (firstName.charAt(0) + (lastName.charAt(0) || "")).toUpperCase() || "DV";
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,13 +35,13 @@ export default function Profile() {
           <div className="rounded-2xl border border-slate-200 bg-white p-6 flex flex-col items-center justify-center text-center h-fit">
             <div className="relative">
               <div className="h-24 w-24 rounded-full bg-gradient-to-tr from-brand-blue to-brand-emerald flex items-center justify-center text-3xl font-bold text-white">
-                DV
+                {initials}
               </div>
               <button className="absolute bottom-0 right-0 p-1.5 rounded-full bg-brand-blue text-white shadow hover:bg-brand-blue-hover transition-colors">
                 <Camera className="h-4 w-4" />
               </button>
             </div>
-            <h3 className="mt-4 font-bold text-brand-dark">Divya Kumar</h3>
+            <h3 className="mt-4 font-bold text-brand-dark">{fullName}</h3>
             <p className="text-[10px] text-slate-400 capitalize mt-1 font-bold bg-slate-100 rounded px-2 py-0.5">{role} View Mode</p>
           </div>
 
@@ -45,7 +53,8 @@ export default function Profile() {
                   <label className="block text-xs font-semibold text-slate-700 mb-2">First Name</label>
                   <input
                     type="text"
-                    defaultValue="Divya"
+                    key={`fn-${firstName}`}
+                    defaultValue={firstName}
                     className="w-full rounded-lg border border-slate-200 py-2.5 px-3.5 text-xs text-slate-900 focus:outline-none focus:border-brand-blue"
                   />
                 </div>
@@ -53,7 +62,8 @@ export default function Profile() {
                   <label className="block text-xs font-semibold text-slate-700 mb-2">Last Name</label>
                   <input
                     type="text"
-                    defaultValue="Kumar"
+                    key={`ln-${lastName}`}
+                    defaultValue={lastName}
                     className="w-full rounded-lg border border-slate-200 py-2.5 px-3.5 text-xs text-slate-900 focus:outline-none focus:border-brand-blue"
                   />
                 </div>
@@ -65,7 +75,8 @@ export default function Profile() {
                   <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-400" />
                   <input
                     type="email"
-                    defaultValue="divya@propvista-ai.com"
+                    key={`em-${email}`}
+                    defaultValue={email}
                     disabled
                     className="w-full rounded-lg border border-slate-200 py-2.5 pl-10 pr-3.5 text-xs bg-slate-50 text-slate-400 cursor-not-allowed"
                   />

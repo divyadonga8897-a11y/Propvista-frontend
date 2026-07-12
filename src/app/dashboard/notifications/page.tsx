@@ -18,7 +18,7 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
-      const response = await api.get("/notifications");
+      const response = await api.get("/api/v1/notifications");
       setNotifications(response.data);
     } catch (error) {
       toast.error("Failed to fetch notifications");
@@ -29,7 +29,7 @@ export default function NotificationsPage() {
 
   const markAsRead = async (id: string) => {
     try {
-      await api.put(`/notifications/${id}/read`);
+      await api.put(`/api/v1/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n: any) => (n.id === id ? { ...n, is_read: true } : n))
       );
@@ -40,7 +40,7 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      await api.put("/notifications/read-all");
+      await api.put("/api/v1/notifications/read-all");
       setNotifications((prev) =>
         prev.map((n: any) => ({ ...n, is_read: true }))
       );

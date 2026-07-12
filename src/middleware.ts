@@ -12,13 +12,10 @@ const PUBLIC_ROUTES = [
 ];
 
 function getRole(user: any, userEmail: string): string {
-  let role = (
-    user?.user_metadata?.role ||
-    user?.app_metadata?.role ||
-    "customer"
-  )
-    .toString()
-    .toLowerCase();
+  const metadataRole = user?.user_metadata?.role || user?.app_metadata?.role;
+  if (metadataRole) {
+    return metadataRole.toString().toLowerCase();
+  }
 
   const adminEmails = [
     "divyadonga8897@gmail.com",
@@ -34,11 +31,12 @@ function getRole(user: any, userEmail: string): string {
     return "resident";
   }
 
-  return role;
+  return "customer";
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  console.log("[Middleware] Processing request for:", pathname);
 
   // Ignore static files and api routes for middleware auth
   if (
@@ -47,72 +45,93 @@ export async function middleware(request: NextRequest) {
     pathname.includes(".") ||
     pathname === "/favicon.ico"
   ) {
+    console.log("[Middleware] Skipping static/api route:", pathname);
     return NextResponse.next();
   }
 
-  const isPublicRoute = pathname === "/" || PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+  try {
+    const isPublicRoute = pathname === "/" || PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+    console.log("[Middleware] isPublicRoute:", isPublicRoute);
 
-  let response = NextResponse.next();
+    let response = NextResponse.next();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookies) {
+            cookies.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options);
+            });
+          },
         },
-        setAll(cookies) {
-          cookies.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
-    }
-  );
+      }
+    );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    console.log("[Middleware] User logged in:", !!user, user?.email);
 
-  // If the user is not logged in
-  if (!user) {
-    if (!isPublicRoute) {
-      return NextResponse.redirect(new URL("/login", request.url));
+    // If the user is not logged in
+    if (!user) {
+      if (!isPublicRoute) {
+        const redirectUrl = new URL("/login", request.url);
+        console.log("[Middleware] Redirecting unauthenticated user to:", redirectUrl.toString());
+        return NextResponse.redirect(redirectUrl);
+      }
+      return response;
     }
+
+    // User is logged in
+    const userEmail = user.email?.toLowerCase() ?? "";
+    const role = getRole(user, userEmail);
+    console.log("[Middleware] Authenticated user role:", role);
+
+    // If a logged-in user accesses the root path, redirect to their dashboard
+    if (pathname === "/") {
+      let dest = "/dashboard";
+      if (role === "admin") dest = "/admin";
+      else if (role === "resident") dest = "/resident";
+      const redirectUrl = new URL(dest, request.url);
+      console.log("[Middleware] Root path redirect for logged-in user to:", redirectUrl.toString());
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Strict routing based on role
+    if (role === "admin") {
+        // Admin should only access /admin and related admin routes
+        if (pathname.startsWith("/customer") || pathname.startsWith("/dashboard") || pathname.startsWith("/resident")) {
+            const redirectUrl = new URL("/admin", request.url);
+            console.log("[Middleware] Redirecting Admin from", pathname, "to:", redirectUrl.toString());
+            return NextResponse.redirect(redirectUrl);
+        }
+    } else if (role === "resident") {
+        // Resident should only access /resident
+        if (pathname.startsWith("/customer") || pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
+            const redirectUrl = new URL("/resident", request.url);
+            console.log("[Middleware] Redirecting Resident from", pathname, "to:", redirectUrl.toString());
+            return NextResponse.redirect(redirectUrl);
+        }
+    } else {
+        // Customer should only access customer features (/dashboard, etc)
+        if (pathname.startsWith("/resident") || pathname.startsWith("/admin")) {
+            const redirectUrl = new URL("/dashboard", request.url);
+            console.log("[Middleware] Redirecting Customer/User from", pathname, "to:", redirectUrl.toString());
+            return NextResponse.redirect(redirectUrl);
+        }
+    }
+
+    console.log("[Middleware] Allowing access to:", pathname);
     return response;
+  } catch (err) {
+    console.error("[Middleware] FATAL EXCEPTION caught:", err);
+    return NextResponse.next();
   }
-
-  // User is logged in
-  const userEmail = user.email?.toLowerCase() ?? "";
-  const role = getRole(user, userEmail);
-
-  // If a logged-in user accesses the root path, redirect to their dashboard
-  if (pathname === "/") {
-    if (role === "admin") return NextResponse.redirect(new URL("/admin", request.url));
-    if (role === "resident") return NextResponse.redirect(new URL("/resident", request.url));
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Strict routing based on role
-  if (role === "admin") {
-      // Admin should only access /admin and related admin routes
-      if (pathname.startsWith("/customer") || pathname.startsWith("/dashboard") || pathname.startsWith("/resident")) {
-          return NextResponse.redirect(new URL("/admin", request.url));
-      }
-  } else if (role === "resident") {
-      // Resident should only access /resident
-      if (pathname.startsWith("/customer") || pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
-          return NextResponse.redirect(new URL("/resident", request.url));
-      }
-  } else {
-      // Customer should only access customer features (/dashboard, etc)
-      if (pathname.startsWith("/resident") || pathname.startsWith("/admin")) {
-          return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-  }
-
-  return response;
 }
 
 export const config = {

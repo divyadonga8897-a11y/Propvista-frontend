@@ -15,11 +15,17 @@ export default function CustomerDashboard() {
 
   useEffect(() => {
     Promise.all([
-      apiService.getBookingHistory(),
-      apiService.getMyResidentAccessRequests().catch(() => [])
+      apiService.getBookingHistory().catch(err => {
+        console.error("Error fetching bookings:", err);
+        return [];
+      }),
+      apiService.getMyResidentAccessRequests().catch(err => {
+        console.error("Error fetching access requests:", err);
+        return [];
+      })
     ]).then(([bData, aData]) => {
-      setBookings(bData);
-      setAccessRequests(aData);
+      setBookings(bData || []);
+      setAccessRequests(aData || []);
     }).catch(err => {
       console.error(err);
     }).finally(() => {

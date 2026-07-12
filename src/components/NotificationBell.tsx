@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/lib/api';
-import { apiService } from "@/services/apiService";
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -19,8 +18,8 @@ export default function NotificationBell() {
 
   const fetchNotifications = async () => {
     try {
-      const data = await apiService.getNotifications();
-      setNotifications(data);
+      const response = await api.get("/api/v1/notifications");
+      setNotifications(response.data);
     } catch (error) {
       console.error("Failed to fetch notifications");
     }
@@ -28,7 +27,7 @@ export default function NotificationBell() {
 
   const markAsRead = async (id: any) => {
     try {
-      await api.put(`/api/notifications/${id}/read`);
+      await api.put(`/api/v1/notifications/${id}/read`);
       setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
     } catch (error) {
       console.error("Failed to mark notification as read");
@@ -37,7 +36,7 @@ export default function NotificationBell() {
 
   const markAllAsRead = async () => {
     try {
-      await api.put('/api/notifications/read-all');
+      await api.put('/api/v1/notifications/read-all');
       setNotifications(notifications.map(n => ({ ...n, is_read: true })));
     } catch (error) {
       console.error("Failed to mark all as read");

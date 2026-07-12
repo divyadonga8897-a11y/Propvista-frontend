@@ -43,7 +43,7 @@ export default function AdminDashboard() {
   };
 
   const getApiUrl = (path: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8008";
     return `${baseUrl}${path}`;
   };
 
@@ -167,25 +167,28 @@ export default function AdminDashboard() {
   const loadInitData = async () => {
     try {
       setLoading(true);
-      const cData = await apiService.getCities();
+      const [cData, aData, statsData] = await Promise.all([
+        apiService.getCities(),
+        apiService.getApartments(),
+        apiService.getDashboardStats()
+      ]);
+
       setCities(cData);
       if (cData.length > 0) {
         setSelectedCityId(cData[0].id);
       }
 
-      const aData = await apiService.getApartments();
       setApartments(aData);
       if (aData.length > 0) {
         setSelectedAptId(aData[0].id);
       }
 
-      const statsData = await apiService.getDashboardStats();
       setStats(statsData);
     } catch (err: any) {
       console.error("Error loading administrative data:", err);
       showError(
-        "Could not connect to the backend API (port 8002). " +
-        "Please start the FastAPI server: run `uvicorn app.main:app --port 8002 --reload` in the propvista-backend directory."
+        "Could not connect to the backend API (port 8008). " +
+        "Please start the FastAPI server: run `uvicorn app.main:app --port 8008 --reload` in the propvista-backend directory."
       );
     } finally {
       setLoading(false);
@@ -268,7 +271,7 @@ export default function AdminDashboard() {
     } catch (err: any) {
       console.error("Apartment creation error:", err);
       const detail = err?.response?.data?.detail || err?.message || "Unknown error";
-      showError(`Failed to create community: ${detail}. Make sure the backend server is running on port 8002.`);
+      showError(`Failed to create community: ${detail}. Make sure the backend server is running on port 8008.`);
     } finally {
       setSubmitting(false);
     }
@@ -474,62 +477,83 @@ export default function AdminDashboard() {
         </div>
 
         {/* Statistics Tab */}
-        {activeTab === "stats" && stats && (
+        {activeTab === "stats" && (
           <div className="space-y-8 animate-fade-in">
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Total Communities</div>
-                <div className="text-2xl font-black text-brand-dark mt-1">{stats.total_apartments}</div>
+            {stats ? (
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Total Communities</div>
+                  <div className="text-2xl font-black text-brand-dark mt-1">{stats.total_apartments}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Total Floors</div>
+                  <div className="text-2xl font-black text-brand-dark mt-1">{stats.total_floors}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Available Flats</div>
+                  <div className="text-2xl font-black text-brand-emerald mt-1">{stats.available_flats}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Occupied Flats (Sold/Rented)</div>
+                  <div className="text-2xl font-black text-red-500 mt-1">{stats.sold_flats + stats.rented_flats}</div>
+                </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Total Floors</div>
-                <div className="text-2xl font-black text-brand-dark mt-1">{stats.total_floors}</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm animate-pulse space-y-3">
+                    <div className="h-2.5 w-24 bg-slate-200 rounded" />
+                    <div className="h-6 w-12 bg-slate-300 rounded" />
+                  </div>
+                ))}
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Available Flats</div>
-                <div className="text-2xl font-black text-brand-emerald mt-1">{stats.available_flats}</div>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Occupied Flats (Sold/Rented)</div>
-                <div className="text-2xl font-black text-red-500 mt-1">{stats.sold_flats + stats.rented_flats}</div>
-              </div>
-            </div>
+            )}
 
             {/* Availability Chart representation */}
             <div className="rounded-2xl border border-slate-200 bg-white p-8">
               <h3 className="text-sm font-bold text-brand-dark mb-4">Apartment Availability Allocations</h3>
-              <div className="h-64 mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      { name: 'Available', value: stats.available_flats, color: '#10b981' },
-                      { name: 'Held', value: stats.held_flats, color: '#f59e0b' },
-                      { name: 'Rented', value: stats.rented_flats, color: '#3b82f6' },
-                      { name: 'Sold', value: stats.sold_flats, color: '#ef4444' },
-                      { name: 'Reserved', value: stats.reserved_flats, color: '#8b5cf6' },
-                    ]}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      {
-                        [
-                          { color: '#10b981' },
-                          { color: '#f59e0b' },
-                          { color: '#3b82f6' },
-                          { color: '#ef4444' },
-                          { color: '#8b5cf6' },
-                        ].map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))
-                      }
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {stats ? (
+                <div className="h-64 mt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { name: 'Available', value: stats.available_flats, color: '#10b981' },
+                        { name: 'Held', value: stats.held_flats, color: '#f59e0b' },
+                        { name: 'Rented', value: stats.rented_flats, color: '#3b82f6' },
+                        { name: 'Sold', value: stats.sold_flats, color: '#ef4444' },
+                        { name: 'Reserved', value: stats.reserved_flats, color: '#8b5cf6' },
+                      ]}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {
+                          [
+                            { color: '#10b981' },
+                            { color: '#f59e0b' },
+                            { color: '#3b82f6' },
+                            { color: '#ef4444' },
+                            { color: '#8b5cf6' },
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))
+                        }
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-64 mt-4 bg-slate-50 rounded-xl animate-pulse flex items-end justify-between p-6 gap-4">
+                  <div className="h-32 w-16 bg-slate-200 rounded" />
+                  <div className="h-12 w-16 bg-slate-200 rounded" />
+                  <div className="h-40 w-16 bg-slate-200 rounded" />
+                  <div className="h-24 w-16 bg-slate-200 rounded" />
+                  <div className="h-8 w-16 bg-slate-200 rounded" />
+                </div>
+              )}
             </div>
           </div>
         )}

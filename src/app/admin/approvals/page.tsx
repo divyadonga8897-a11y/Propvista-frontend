@@ -5,7 +5,7 @@ import { apiService } from "@/services/apiService";
 import { supabase } from "@/lib/supabase";
 import {
   ShieldCheck, Search, CheckCircle, XCircle, FileText,
-  AlertCircle, Clock, Download, Building2, Home, Layers, User, Mail, Loader2, DollarSign, Eye
+  AlertCircle, Clock, Download, Building2, Home, Layers, User, Mail, Loader2, DollarSign, Eye, Phone
 } from "lucide-react";
 
 export default function AdminApprovals() {
@@ -39,7 +39,7 @@ export default function AdminApprovals() {
   }, [loadApprovals]);
 
   const getApiUrl = (path: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8008";
     return `${baseUrl}${path}`;
   };
 
@@ -67,8 +67,16 @@ export default function AdminApprovals() {
   };
 
   const handleReject = async (id: string) => {
-    const reason = remarksMap[id] || prompt("Enter reason for rejection (optional):") || "";
-    if (reason === null) return;
+    let reason = remarksMap[id]?.trim() || "";
+    if (!reason) {
+      const promptReason = prompt("Please enter the reason for rejection (required):");
+      if (promptReason === null) return; // User cancelled the prompt
+      reason = promptReason.trim();
+    }
+    if (!reason) {
+      alert("Rejection reason is required.");
+      return;
+    }
     try {
       setActionLoadingId(id);
       await apiService.rejectResidentAccessRequest(id, reason);
@@ -186,7 +194,7 @@ export default function AdminApprovals() {
                     </div>
 
                     {/* Customer & Property Info */}
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                       {/* Customer */}
                       <div className="space-y-1">
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Customer</p>
@@ -198,6 +206,12 @@ export default function AdminApprovals() {
                           <Mail className="h-3 w-3 text-slate-400" />
                           {req.customer?.email || "—"}
                         </div>
+                        {req.customer?.phone && (
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                            <Phone className="h-3 w-3 text-slate-400" />
+                            {req.customer.phone}
+                          </div>
+                        )}
                       </div>
 
                       {/* Property */}
@@ -213,6 +227,17 @@ export default function AdminApprovals() {
                         </div>
                       </div>
 
+                      {/* Booking Info */}
+                      <div className="space-y-1">
+                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Booking Info</p>
+                        <div className="text-xs font-bold text-slate-800 uppercase">
+                          {req.booking?.booking_type || "—"}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          Booked: {req.booking?.created_at ? new Date(req.booking.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                        </div>
+                      </div>
+
                       {/* Payment Details */}
                       <div className="space-y-1">
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Payment Details</p>
@@ -224,11 +249,11 @@ export default function AdminApprovals() {
                           Ref: {req.booking?.payments?.[0]?.razorpay_payment_id || "Local Payment"}
                         </div>
                         <div className="text-[9px] text-slate-400 uppercase font-bold">
-                          {req.booking?.payments?.[0]?.payment_type || "Advance Booking"}
+                          {req.booking?.status || "Pending"}
                         </div>
                       </div>
 
-                      {/* Booking & Status */}
+                      {/* Request Status */}
                       <div className="space-y-2">
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status & Date</p>
                         <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
@@ -257,7 +282,7 @@ export default function AdminApprovals() {
                           className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors"
                         >
                           <Eye className="h-3.5 w-3.5" />
-                          View Agreement PDF
+                          View Booking Document
                         </a>
                         <a
                           href={getApiUrl(`/api/v1/documents/${req.document.id}/download?token=${token}`)}
@@ -295,13 +320,7 @@ export default function AdminApprovals() {
                             Approve
                           </button>
                           <button
-                            onClick={() => {
-                              if (!remarksMap[req.id]) {
-                                alert("Rejection remarks/reason is required.");
-                                return;
-                              }
-                              handleReject(req.id);
-                            }}
+                            onClick={() => handleReject(req.id)}
                             disabled={isProcessing}
                             className="px-3 py-2 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-colors flex items-center gap-1.5 disabled:opacity-50"
                           >

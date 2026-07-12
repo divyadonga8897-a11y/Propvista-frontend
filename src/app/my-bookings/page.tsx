@@ -10,8 +10,10 @@ import { supabase } from "@/lib/supabase";
 export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -21,17 +23,46 @@ export default function MyBookingsPage() {
     });
 
     Promise.all([
-      apiService.getBookingHistory(),
-      apiService.getPaymentHistory()
-    ]).then(([bData, pData]) => {
-      setBookings(bData);
-      setPayments(pData);
+      apiService.getBookingHistory().catch(err => {
+        console.error("Error fetching bookings:", err);
+        return [];
+      }),
+      apiService.getPaymentHistory().catch(err => {
+        console.error("Error fetching payments:", err);
+        return [];
+      }),
+      apiService.getMyResidentAccessRequests().catch(err => {
+        console.error("Error fetching access requests:", err);
+        return [];
+      })
+    ]).then(([bData, pData, rData]) => {
+      setBookings(bData || []);
+      setPayments(pData || []);
+      setRequests(rData || []);
       setLoading(false);
     }).catch(err => {
-      console.error(err);
+      console.error("Unexpected error loading bookings page data:", err);
       setLoading(false);
     });
   }, []);
+
+  const handleRequestApproval = async (bookingId: string, flatId: string, documentId?: string) => {
+    try {
+      setSubmittingId(bookingId);
+      await apiService.createResidentAccessRequest({
+        booking_id: bookingId,
+        flat_id: flatId,
+        document_id: documentId
+      });
+      const reqs = await apiService.getMyResidentAccessRequests();
+      setRequests(reqs);
+    } catch (err: any) {
+      console.error("Failed to request approval:", err);
+      alert(err?.response?.data?.error || err?.response?.data?.detail || "Failed to submit request.");
+    } finally {
+      setSubmittingId(null);
+    }
+  };
 
   const formatPrice = (n: number) => {
     if (!n) return "N/A";
@@ -39,7 +70,7 @@ export default function MyBookingsPage() {
   };
 
   const getApiUrl = (path: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8008";
     return `${baseUrl}${path}`;
   };
 
@@ -88,15 +119,68 @@ export default function MyBookingsPage() {
                   <div className="space-y-4">
                     {bookings.map((b) => (
                       <div key={b.id} className="border border-slate-100 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:shadow transition-shadow">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getStatusColor(b.status)}`}>
-                              {b.status}
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-400">{b.booking_type}</span>
+                        <div className="flex-grow space-y-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${getStatusColor(b.status)}`}>
+                                {b.status}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-400">{b.booking_type}</span>
+                            </div>
+                            <h4 className="text-xs font-extrabold text-slate-900 mt-2">Flat {b.flat?.flat_number || "N/A"} - {b.flat?.apartment_name || "Community"}</h4>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">Booking Date: {new Date(b.created_at).toLocaleDateString()}</span>
                           </div>
-                          <h4 className="text-xs font-extrabold text-slate-900 mt-2">Flat {b.flat?.flat_number || "N/A"} - {b.flat?.apartment_name || "Community"}</h4>
-                          <span className="text-[10px] text-slate-400 block mt-0.5">Booking Date: {new Date(b.created_at).toLocaleDateString()}</span>
+
+                          {/* Resident Approval Request Widget */}
+                          {(() => {
+                            const bookingPdf = b.documents?.find((d: any) => d.doc_type === "Sale Agreement" || d.doc_type === "Rental Agreement");
+                            const isCompleted = b.status === "Completed";
+                            
+                            if (isCompleted && bookingPdf) {
+                              const request = requests.find((r: any) => r.booking_id === b.id);
+                              if (request) {
+                                if (request.status === "Pending") {
+                                  return (
+                                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-xs space-y-1 w-fit">
+                                      <p className="font-bold text-orange-700 flex items-center gap-1.5">
+                                        ✔ Approval Request Sent
+                                      </p>
+                                      <p className="text-slate-600 font-medium">Status: Pending Admin Approval</p>
+                                    </div>
+                                  );
+                                } else if (request.status === "Approved") {
+                                  return (
+                                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs space-y-1 w-fit">
+                                      <p className="font-bold text-emerald-700 flex items-center gap-1.5">
+                                        ✔ Resident Access Approved
+                                      </p>
+                                      <p className="text-slate-600 font-medium">Status: Approved</p>
+                                    </div>
+                                  );
+                                } else if (request.status === "Rejected") {
+                                  return (
+                                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs space-y-1 w-fit">
+                                      <p className="font-bold text-red-700">
+                                        ❌ Resident Access Request Rejected
+                                      </p>
+                                      <p className="text-slate-700 font-semibold mt-1">Rejection Reason: {request.rejection_reason || request.remarks || "No reason specified"}</p>
+                                    </div>
+                                  );
+                                }
+                              } else {
+                                return (
+                                  <button
+                                    onClick={() => handleRequestApproval(b.id, b.flat_id, bookingPdf.id)}
+                                    disabled={submittingId === b.id}
+                                    className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 rounded-xl transition-all shadow-sm"
+                                  >
+                                    {submittingId === b.id ? "Sending Request..." : "Request for Resident Approval"}
+                                  </button>
+                                );
+                              }
+                            }
+                            return null;
+                          })()}
                         </div>
 
                         {b.documents && b.documents.length > 0 && (
