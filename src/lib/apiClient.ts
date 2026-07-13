@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 const apiClient = axios.create({
   baseURL:
     process.env.NEXT_PUBLIC_API_URL ||
-    "http://127.0.0.1:8008",
+    "http://127.0.0.1:8008" || "https://propvista-backend2.vercel.app/",
   timeout: 60000,
   headers: {
     "Content-Type": "application/json",
