@@ -602,7 +602,7 @@ export default function Home() {
                                 {[
                                     { icon: MapPin, label: "Location", value: "Nandyal, Andhra Pradesh, India — 518501" },
                                     { icon: Phone, label: "Phone", value: "+91 98765 43210" },
-                                    { icon: Mail, label: "Email", value: "hello@propvista.ai" },
+                                    { icon: Mail, label: "Email", value: "divyadonga8897@gmail.com" },
                                 ].map(({ icon: Icon, label, value }) => (
                                     <div key={label} className="flex items-center gap-3">
                                         <div className="h-9 w-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
