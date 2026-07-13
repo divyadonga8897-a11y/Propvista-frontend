@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = "re_FtBhZsN8_81qTQuH9EQ4v4RhP6xVjpdkW";
+    const apiKey = process.env.RESEND_API_KEY || "re_FtBhZsN8_81qTQuH9EQ4v4RhP6xVjpdkW";
     const resendUrl = "https://api.resend.com/emails";
 
     const response = await fetch(resendUrl, {
