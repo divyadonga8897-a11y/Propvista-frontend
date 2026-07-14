@@ -46,20 +46,29 @@ export default function Properties() {
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [flats, setFlats] = useState<Flat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const loadData = () => {
+    setLoading(true);
+    setFetchError(null);
+    Promise.all([apiService.getApartments(), apiService.getFlats()])
+      .then(([apts, fls]) => {
+        setApartments(apts);
+        setFlats(fls);
+      })
+      .catch((err) => {
+        console.error("Failed to load properties:", err);
+        setFetchError("Could not load properties. The server may be starting up — please try again in a few seconds.");
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
     const urlSearch = searchParams.get("search");
     if (urlSearch) setSearch(urlSearch);
     const urlBhk = searchParams.get("bhk");
     if (urlBhk && urlBhk !== "All") setBhk(urlBhk);
-    
-    Promise.all([apiService.getApartments(), apiService.getFlats()])
-      .then(([apts, fls]) => {
-        setApartments(apts);
-        setFlats(fls);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    loadData();
   }, [searchParams]);
 
   // Filter & Sort
@@ -243,8 +252,24 @@ export default function Properties() {
       {/* ── Flat Grid ────────────────────────────────────────── */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 flex-grow w-full">
         {loading ? (
-          <div className="col-span-full py-20 text-center text-slate-400">
-            Loading properties...
+          <div className="col-span-full py-20 text-center text-slate-400 flex flex-col items-center gap-3">
+            <div className="h-10 w-10 rounded-full border-4 border-slate-300 border-t-indigo-500 animate-spin" />
+            <p className="text-sm font-medium">Loading properties from server…</p>
+            <p className="text-xs text-slate-400">This may take a few seconds on first load.</p>
+          </div>
+        ) : fetchError ? (
+          <div className="col-span-full py-20 text-center flex flex-col items-center gap-4">
+            <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+              <Search className="h-6 w-6 text-red-500" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">Failed to Load Properties</h3>
+            <p className="text-sm text-slate-500 max-w-md">{fetchError}</p>
+            <button
+              onClick={loadData}
+              className="mt-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-all"
+            >
+              Retry
+            </button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="col-span-full py-20 text-center">

@@ -123,8 +123,9 @@ export const apiService = {
     status?: string;
     listing_type?: string;
     sort_by?: string;
+    limit?: number;
   }): Promise<Flat[]> => {
-    const { data } = await apiClient.get("/api/v1/flats", { params });
+    const { data } = await apiClient.get("/api/v1/flats", { params: { limit: 200, ...params } });
     return data;
   },
 

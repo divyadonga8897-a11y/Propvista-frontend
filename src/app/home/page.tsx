@@ -150,12 +150,15 @@ export default function Home() {
     const [flats, setFlats] = useState<Flat[]>([]);
 
     useEffect(() => {
-        Promise.all([apiService.getApartments(), apiService.getFlats()])
+    Promise.all([apiService.getApartments(), apiService.getFlats()])
             .then(([apts, fls]) => {
                 setApartments(apts);
                 setFlats(fls);
             })
-            .catch(console.error);
+            .catch((err) => {
+                console.error("Failed to load apartments/flats:", err);
+                // Leave arrays empty — page degrades gracefully
+            });
     }, []);
 
     const filteredApts = apartments.filter(
