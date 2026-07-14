@@ -57,7 +57,7 @@ export default function PaymentSuccessPage() {
         setLoading(false);
       }
     };
-    const t = setTimeout(fetchData, 5000);
+    const t = setTimeout(fetchData, 10000);
     return () => clearTimeout(t);
   }, [bookingId, isLocalPayment]);
 

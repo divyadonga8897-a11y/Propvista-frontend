@@ -20,7 +20,7 @@ export default function Profile() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setTimeout(() => setSaved(false), 5000);
   };
 
   return (
