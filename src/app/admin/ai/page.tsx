@@ -181,7 +181,7 @@ export default function AdminDashboard() {
       setAptContact("");
       setAptEmail("");
       reloadStats();
-      setTimeout(() => setAlertMsg(""), 1000);
+      setTimeout(() => setAlertMsg(""), 5000);
     } catch (err) {
       console.error("Apartment creation error:", err);
     }
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
       setFloors(data);
       reloadStats();
       setAlertMsg("Floor hierarchy added.");
-      setTimeout(() => setAlertMsg(""), 1000);
+      setTimeout(() => setAlertMsg(""), 5000);
     } catch (err) {
       console.error(err);
     }
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
       setFlats(data);
       reloadStats();
       setAlertMsg("Flat successfully created.");
-      setTimeout(() => setAlertMsg(""), 1000);
+      setTimeout(() => setAlertMsg(""), 5000);
     } catch (err) {
       console.error(err);
     }

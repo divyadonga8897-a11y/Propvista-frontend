@@ -34,7 +34,7 @@ export default function ResidentDashboard() {
     setTicketTitle("");
     setDesc("");
     setSuccess(true);
-    setTimeout(() => setSuccess(false), 3000);
+    setTimeout(() => setSuccess(false), 5000);
   };
 
   const handlePay = () => {

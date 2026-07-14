@@ -146,13 +146,13 @@ export default function AdminDashboard() {
   const showSuccess = (msg: string) => {
     setErrorMsg("");
     setAlertMsg(msg);
-    setTimeout(() => setAlertMsg(""), 3000);
+    setTimeout(() => setAlertMsg(""), 5000);
   };
 
   const showError = (msg: string) => {
     setAlertMsg("");
     setErrorMsg(msg);
-    setTimeout(() => setErrorMsg(""), 3000);
+    setTimeout(() => setErrorMsg(""), 5000);
   };
 
   useEffect(() => {

@@ -137,7 +137,7 @@ export const apiService = {
     }
 
     const { data } = await apiClient.get(`/api/v1/flats/${id}`, {
-      timeout: 3000,
+      timeout: 6000,
       headers: { "X-No-Redirect": "true" }
     });
     return data;

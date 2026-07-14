@@ -5,7 +5,7 @@ const apiClient = axios.create({
   baseURL:
     process.env.NEXT_PUBLIC_API_URL ||
     "http://127.0.0.1:8008" || "https://propvista-backend2.vercel.app/",
-  timeout: 15000,
+  timeout: 19000,
   headers: {
     "Content-Type": "application/json",
   },

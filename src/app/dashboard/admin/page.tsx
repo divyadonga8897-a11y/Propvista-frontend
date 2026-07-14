@@ -184,7 +184,7 @@ export default function AdminDashboard() {
       setAptContact("");
       setAptEmail("");
       reloadStats();
-      setTimeout(() => setAlertMsg(""), 3000);
+      setTimeout(() => setAlertMsg(""), 5000);
     } catch (err) {
       console.error("Apartment creation error:", err);
     }
