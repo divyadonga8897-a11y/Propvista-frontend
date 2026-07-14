@@ -146,13 +146,13 @@ export default function AdminDashboard() {
   const showSuccess = (msg: string) => {
     setErrorMsg("");
     setAlertMsg(msg);
-    setTimeout(() => setAlertMsg(""), 5000);
+    setTimeout(() => setAlertMsg(""), 3000);
   };
 
   const showError = (msg: string) => {
     setAlertMsg("");
     setErrorMsg(msg);
-    setTimeout(() => setErrorMsg(""), 8000);
+    setTimeout(() => setErrorMsg(""), 3000);
   };
 
   useEffect(() => {
@@ -1656,11 +1656,10 @@ export default function AdminDashboard() {
                           {/* Status */}
                           <div className="space-y-2">
                             <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Status & Date</p>
-                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                              req.status === "Approved" ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${req.status === "Approved" ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : req.status === "Rejected" ? "bg-red-50 text-red-700 border border-red-200"
-                              : "bg-orange-50 text-orange-700 border border-orange-200"
-                            }`}>
+                                : "bg-orange-50 text-orange-700 border border-orange-200"
+                              }`}>
                               {req.status}
                             </span>
                             <p className="text-[10px] text-slate-400 font-medium">

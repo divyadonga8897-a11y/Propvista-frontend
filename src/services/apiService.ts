@@ -135,52 +135,11 @@ export const apiService = {
       throw new Error(`Flat with mock ID ${id} not found`);
     }
 
-    try {
-      const { data } = await apiClient.get(`/api/v1/flats/${id}`, {
-        timeout: 4000,
-        headers: { "X-No-Redirect": "true" }
-      });
-      return data;
-    } catch (err) {
-      console.warn("Backend flat fetch failed or timed out. Falling back to local mock data.", err);
-      const mockFlat = getMockFlatById(id);
-      if (mockFlat) return mockFlat;
-
-      return {
-        id,
-        floor_id: "7b47b250-9366-4c74-8d48-8eb0db2e2e71",
-        flat_number: "102",
-        apartment_name: "PropVista Heights",
-        apartment_id: "55459b21-88bf-4344-896e-0c4ec3a02ccb",
-        floor_name: "First Floor",
-        floor_number: 1,
-        flat_type: "2BHK",
-        facing_direction: "South",
-        bedrooms: 2,
-        bathrooms: 2,
-        balconies: 1,
-        parking_slots: 1,
-        hall: 1,
-        kitchen: 1,
-        dining: 1,
-        area_sqft: 1050,
-        price_buy: 7800000,
-        price_rent: 25000,
-        maintenance_fee: 2500,
-        status: "Available",
-        created_at: new Date().toISOString(),
-        images: [
-          {
-            id: "img-1",
-            flat_id: id,
-            image_url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80",
-            image_type: "Gallery",
-            caption: "Spacious Living Room",
-            display_order: 1
-          }
-        ]
-      };
-    }
+    const { data } = await apiClient.get(`/api/v1/flats/${id}`, {
+      timeout: 3000,
+      headers: { "X-No-Redirect": "true" }
+    });
+    return data;
   },
 
   createFlat: async (floorId: string, flat: Omit<Flat, "id" | "created_at" | "images">): Promise<Flat> => {

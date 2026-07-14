@@ -30,10 +30,12 @@ export default function NestedFlatDetailPage({
   const fetchFlatDetails = async () => {
     try {
       setLoading(true);
+      setFlat(null);
       const data = await apiService.getFlatById(resolvedParams.flatId);
       setFlat(data);
     } catch (err) {
       console.error("Error fetching flat details:", err);
+      setFlat(null);
     } finally {
       setLoading(false);
     }

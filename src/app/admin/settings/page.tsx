@@ -225,7 +225,7 @@ export default function AdminSettings() {
                     className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all border ${theme === t
                       ? "border-indigo-300 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200"
                       : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
+                      }`}
                   >
                     {t}
                   </button>
@@ -248,7 +248,7 @@ export default function AdminSettings() {
                     className={`h-10 w-10 rounded-xl ${c.color} transition-all ${accentColor === c.name
                       ? "ring-2 ring-offset-2 ring-slate-400 scale-110"
                       : "hover:scale-105"
-                    }`}
+                      }`}
                     title={c.name}
                   />
                 ))}

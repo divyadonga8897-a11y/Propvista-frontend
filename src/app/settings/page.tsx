@@ -52,7 +52,7 @@ export default function Settings() {
           <button
             onClick={() => {
               setSuccess(true);
-              setTimeout(() => setSuccess(false), 2000);
+              setTimeout(() => setSuccess(false), 3000);
             }}
             className="mt-4 rounded-lg bg-brand-blue hover:bg-brand-blue-hover px-5 py-2.5 text-xs font-bold text-white transition-colors flex items-center gap-1.5"
           >

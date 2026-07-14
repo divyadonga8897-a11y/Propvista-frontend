@@ -29,7 +29,7 @@ export default function AdminDashboard() {
   const [pyLoading, setPyLoading] = useState(false);
   const [svLoading, setSvLoading] = useState(false);
   const [alLoading, setAlLoading] = useState(false);
-  
+
   const [residentApprovals, setResidentApprovals] = useState<any[]>([]);
   const [raLoading, setRaLoading] = useState(false);
 
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
       setAptContact("");
       setAptEmail("");
       reloadStats();
-      setTimeout(() => setAlertMsg(""), 4000);
+      setTimeout(() => setAlertMsg(""), 3000);
     } catch (err) {
       console.error("Apartment creation error:", err);
     }
@@ -438,7 +438,7 @@ export default function AdminDashboard() {
             <h3 className="text-sm font-bold text-brand-dark mb-4 border-b border-slate-100 pb-3 flex items-center gap-1.5">
               <Check className="h-4 w-4 text-emerald-500" /> Pending Resident Access Requests
             </h3>
-            
+
             {raLoading ? (
               <div className="text-center p-8 text-slate-500">Loading requests...</div>
             ) : residentApprovals.length === 0 ? (
@@ -456,7 +456,7 @@ export default function AdminDashboard() {
                       <div className="text-xs text-slate-400 mt-2">Requested on: {new Date(req.created_at).toLocaleDateString()}</div>
                     </div>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={async () => {
                           try {
                             await apiService.approveResidentAccessRequest(req.id, "Approved by Admin");
@@ -471,7 +471,7 @@ export default function AdminDashboard() {
                       >
                         Approve
                       </button>
-                      <button 
+                      <button
                         onClick={async () => {
                           const remarks = prompt("Reason for rejection:");
                           if (remarks) {

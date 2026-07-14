@@ -28,9 +28,14 @@ export default function UnitDetails({ params }: { params: Promise<{ unitId: stri
   const [activeImg, setActiveImg] = useState("");
 
   useEffect(() => {
+    setLoading(true);
+    setBaseUnit(null);
     apiService.getFlatById(resolvedParams.unitId)
       .then(setBaseUnit)
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        setBaseUnit(null);
+      })
       .finally(() => setLoading(false));
   }, [resolvedParams.unitId]);
 

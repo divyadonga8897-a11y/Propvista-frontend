@@ -28,10 +28,12 @@ export default function FlatDetailPage({ params }: { params: Promise<{ id: strin
   const fetchFlatDetails = async () => {
     try {
       setLoading(true);
+      setFlat(null);
       const data = await apiService.getFlatById(resolvedParams.id);
       setFlat(data);
     } catch (err) {
       console.error("Error fetching flat details:", err);
+      setFlat(null);
     } finally {
       setLoading(false);
     }

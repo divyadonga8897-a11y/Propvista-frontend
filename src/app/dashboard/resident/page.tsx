@@ -15,7 +15,7 @@ export default function ResidentDashboard() {
   const [priority, setPriority] = useState("Medium");
   const [desc, setDesc] = useState("");
   const [success, setSuccess] = useState(false);
-  
+
   // Payment modal state
   const [payModal, setPayModal] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -34,7 +34,7 @@ export default function ResidentDashboard() {
     setTicketTitle("");
     setDesc("");
     setSuccess(true);
-    setTimeout(() => setSuccess(false), 2000);
+    setTimeout(() => setSuccess(false), 3000);
   };
 
   const handlePay = () => {
@@ -42,7 +42,7 @@ export default function ResidentDashboard() {
     setTimeout(() => {
       setPaying(false);
       setPaid(true);
-    }, 2000);
+    }, 3000);
   };
 
   const getPriorityColor = (p: string) => {
@@ -192,9 +192,8 @@ export default function ResidentDashboard() {
                     <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold ${getPriorityColor(t.priority)}`}>
                       {t.priority}
                     </span>
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
-                      t.status === "Resolved" ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
-                    }`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${t.status === "Resolved" ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
+                      }`}>
                       {t.status}
                     </span>
                   </div>
